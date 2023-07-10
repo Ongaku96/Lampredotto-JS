@@ -5,17 +5,17 @@ import { Collection } from "./modules/enumerators.js";
 import { Application } from "./modules/application.js";
 import log from "./modules/console.js";
 /**Lampredotto framework */
-export default class LampRender {
+export default class RenderEngine {
     static _instance;
     handler = new EventHandler();
     /**Singleton instance of framework */
     static get instance() {
         try {
-            if (LampRender._instance == null) {
-                LampRender._instance = new LampRender();
-                LampRender._instance.handler.trigger(Collection.lifecycle.created.toString());
+            if (RenderEngine._instance == null) {
+                RenderEngine._instance = new RenderEngine();
+                RenderEngine._instance.handler.trigger(Collection.lifecycle.created.toString());
             }
-            return LampRender._instance;
+            return RenderEngine._instance;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);

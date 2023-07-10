@@ -281,7 +281,10 @@ class cModel extends Command {
                     break;
                 default:
                     _debug = this.readValue(node.context, node.settings);
-                    node.reference[0].innerHTML = _debug;
+                    let _element = Support.templateFromString(_debug.toString())?.firstChild;
+                    node.removeChildren();
+                    if (_element)
+                        node.append(_element);
                     break;
             }
             this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });

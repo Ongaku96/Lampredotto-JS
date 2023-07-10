@@ -118,7 +118,7 @@ export class vNode {
                 node.state = Collection.lifecycle.mounted;
             });
             this.elaborateChildren(this);
-            this.onInject(async (node) => { node.elaborate(node.context, node.settings); });
+            this.onInject(async (node) => { node.elaborate(this.context, this.settings); });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -200,6 +200,7 @@ export class vNode {
             let _children = element.childNodes;
             for (const child of Array.from(_children)) {
                 let _node = vNode.newInstance(child, this.settings);
+                this.setupChildEvents(_node);
                 if (checkChild(child))
                     this.children.push(_node);
             }
@@ -213,6 +214,13 @@ export class vNode {
         catch (ex) {
             throw ex;
         }
+    }
+    setupChildEvents(_node) {
+        _node.onProgress((state) => {
+            if (state == Collection.lifecycle.unmounted) {
+                this._children = this._children.filter((c) => c.id != _node.id);
+            }
+        });
     }
     /**Check if node has dynamic elements */
     checkIfStatic() {
@@ -254,6 +262,7 @@ export class vNode {
             log(ex, Collection.message_type.error);
         }
     }
+    /**Merge parent Settings with personal settings */
     mergeSettings(settings) {
         if (settings.darkmode != null)
             this.settings.darkmode = settings.darkmode;
@@ -270,6 +279,7 @@ export class vNode {
             }
         }
     }
+    /**Check if node is updatable based on settings */
     isUpdatable(options) {
         if (options) {
             let _inclused = checkInclusion(this);
@@ -292,6 +302,12 @@ export class vNode {
         }
         return true;
     }
+    /**Replace virtual child with another */
+    replaceChild(vnode) {
+        let _child = this._children.find((e) => e.id == this.id);
+        if (_child)
+            _child = vnode;
+    }
     //#endregion
     //#region EVENTS
     /**Define events on state's changes */
@@ -304,21 +320,92 @@ export class vNode {
     onDataset(action) {
         this._handler.on(Collection.node_event.dataset, action);
     }
+    trigger(name, ...args) {
+        this._handler.trigger(name, ...args);
+    }
     //#endregion
     //#region HTML INJECTION
-    append(node) {
-        this.incubator.appendChild(node);
-        let _node = vNode.newInstance(node, this.settings);
-        _node.setup();
-        this._children.push(_node);
-        this._handler.trigger(Collection.node_event.inject, _node);
+    /**Inject element as last children */
+    append(node, index = 0) {
+        try {
+            if (this.reference[index] && this.reference[index].nodeType == Node.ELEMENT_NODE) {
+                this.reference[index].append(node);
+                let _node = vNode.newInstance(node, this.settings);
+                _node.setup();
+                this.setupChildEvents(_node);
+                this._children.push(_node);
+                this._handler.trigger(Collection.node_event.inject, _node);
+            }
+            else {
+                log("Impossible to append at " + this.id + " node cause it is not an Element Node", Collection.message_type.warning);
+            }
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
     }
-    prepend(node) {
-        this.reference.prepend(node);
-        let _node = vNode.newInstance(node, this.settings);
-        _node.setup();
-        this._children = this._children.prepend(_node);
-        this._handler.trigger(Collection.node_event.inject, _node);
+    /**Inject new element as first children */
+    prepend(node, index = 0) {
+        try {
+            if (this.reference[index] && this.reference[index].nodeType == Node.ELEMENT_NODE) {
+                this.reference[index].prepend(node);
+                let _node = vNode.newInstance(node, this.settings);
+                _node.setup();
+                this.setupChildEvents(_node);
+                this._children = this._children.prepend(_node);
+                this._handler.trigger(Collection.node_event.inject, _node);
+            }
+            else {
+                log("Impossible to prepend at " + this.id + " node cause it is not an Element Node", Collection.message_type.warning);
+            }
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+    }
+    /**Remove all children */
+    removeChildren(filter) {
+        try {
+            let _children = filter ? this.children.filter((c) => filter(c)) : this.children;
+            for (const child of _children) {
+                child.clear();
+            }
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+    }
+    /**Remove node from virtualizer and DOM*/
+    clear() {
+        try {
+            this.state = Collection.lifecycle.unmounting;
+            if (this.reference.length) {
+                for (const element of this.reference) {
+                    element.remove();
+                }
+            }
+            this.state = Collection.lifecycle.unmounted;
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+    }
+    /**Replace first reference DOM element with another */
+    replaceWith(node) {
+        try {
+            let _virtual = vNode.newInstance(node, this.settings);
+            _virtual.setup();
+            this.setupChildEvents(_virtual);
+            let _parent = this.reference[0]?.parentNode;
+            if (_parent) {
+                _parent.replaceChild(node, this.reference[0]);
+                _parent.virtual?.replaceChild(_virtual);
+                _parent.virtual?.trigger(Collection.node_event.inject, _virtual);
+            }
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
     }
 }
 /**virtual node for templates */

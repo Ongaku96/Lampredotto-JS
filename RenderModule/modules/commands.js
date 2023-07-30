@@ -499,14 +499,14 @@ class cFor extends Command {
                             else {
                                 _context[_me.alias] = react(_data[i], _reactive);
                             }
-                            _new_node.onDataset((data) => {
-                                if (Support.isPrimitive(_data[i])) {
-                                    ref(data, _me.alias, _data[i], _reactive);
-                                }
-                                else {
-                                    data[_me.alias] = react(_data[i], _reactive);
-                                }
-                            });
+                            //obsolete?
+                            // _new_node.onDataset((data: DataCollection) => {
+                            //     if (Support.isPrimitive(_data[i])) {
+                            //         ref(data, _me.alias, _data[i], _reactive);
+                            //     } else {
+                            //         data[_me.alias] = react(_data[i], _reactive);
+                            //     }
+                            // });
                             _new_node.setup();
                             _new_node.elaborate(_context); //render template content
                             return _new_node;

@@ -538,12 +538,14 @@ export class vTemplate extends vNode {
                     node: this,
                     get: (_target, _key, _context) => {
                         if (attr.ref) {
+                            //parent.context ? 
                             return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
                         }
                         return null;
                     },
                     set: (_target, _key, newvalue) => {
                         if (attr.dynamic && attr.ref != null) {
+                            //parent.context ?
                             Support.setValue(this.context, attr.ref, newvalue);
                         }
                     },
@@ -623,7 +625,7 @@ export class vTemplate extends vNode {
     elaborateChildren() {
         super.elaborateChildren();
         this.buildContext().then((context) => {
-            this._handler.trigger(Collection.node_event.dataset, this.context);
+            // this._handler.trigger(Collection.node_event.dataset, this.context); obsolete?
             //exclude for because of auto elaboration of command
             if (!this._commands.find((c) => c instanceof cFor)) {
                 for (const child of this.vtemplate_children) {

@@ -156,7 +156,8 @@ class CommandVisitor {
                         _template.removeAttribute(cIf.key);
                         return {
                             template: _template,
-                            condition: _condition
+                            condition: _condition,
+                            active: false
                         };
                     }
                     //Check ELSEIF
@@ -169,20 +170,22 @@ class CommandVisitor {
                             }
                             return false;
                         };
-                        let _template = sibling.virtual?.backup.cloneNode(true);
+                        let _template = sibling.cloneNode(true);
                         _template.removeAttribute(cIf.key_elseif);
                         return {
                             template: _template,
-                            condition: _condition
+                            condition: _condition,
+                            active: false
                         };
                     }
                     //Check ELSE
                     if (sibling.getAttributeNames().includes(cIf.key_else)) {
-                        let _template = sibling.virtual?.backup.cloneNode(true);
+                        let _template = sibling.cloneNode(true);
                         _template.removeAttribute(cIf.key_else);
                         return {
                             template: _template,
-                            condition: function () { return true; }
+                            condition: function () { return true; },
+                            active: false
                         };
                     }
                 }
@@ -244,50 +247,59 @@ class cModel extends Command {
         super(attribute);
     }
     render(node) {
-        if (node.reference.length && this.reference && node.element) {
-            let _value = node.reference[0].value;
-            let _new_value = Support.getValue(node.context, this.reference);
-            let _debug = null;
-            switch (this.node_type) {
-                case "INPUT":
-                case "TEXTAREA":
-                    let _type = node.element?.getAttribute("type");
-                    switch (_type) {
-                        case "checkbox":
-                        case "radio":
-                            let _checked = _value != null ? Array.isArray(_new_value) ? _new_value.includes(_value) : _value == _new_value : _new_value;
-                            _debug = _checked;
-                            node.reference[0].checked = _debug;
-                            break;
-                        default:
-                            _debug = this.readValue(node.context, node.settings);
-                            node.reference[0].value = _debug;
-                            break;
-                    }
-                    break;
-                case "SELECT":
-                    if (Array.isArray(_new_value)) {
-                        _debug = [];
-                        for (let option of Array.from(node.reference[0].options)) {
-                            option.selected = _new_value.includes(option.value) || _new_value.includes(option.text);
-                            if (option.selected)
-                                _debug.push(option.value);
+        try {
+            if (node.reference.length && this.reference && node.element) {
+                let _value = node.reference[0].value;
+                let _new_value = Support.getValue(node.context, this.reference);
+                let _debug = null;
+                switch (this.node_type) {
+                    case "INPUT":
+                    case "TEXTAREA":
+                        let _type = node.element?.getAttribute("type");
+                        switch (_type) {
+                            case "checkbox":
+                            case "radio":
+                                let _checked = _value != null && _value != "on" ?
+                                    (Array.isArray(_new_value) ? _new_value.includes(_value) : _value == _new_value) :
+                                    _new_value;
+                                _debug = _checked;
+                                node.reference[0].checked = _debug;
+                                break;
+                            default:
+                                _debug = this.readValue(node.context, node.settings);
+                                node.reference[0].value = _debug;
+                                break;
                         }
-                    }
-                    else {
-                        _debug = _new_value;
-                        node.reference[0].value = _debug;
-                    }
-                    break;
-                default:
-                    _debug = this.readValue(node.context, node.settings);
-                    let _element = Support.templateFromString(_debug.toString())?.firstChild;
-                    node.removeChildren();
-                    if (_element)
-                        node.append(_element);
-                    break;
+                        break;
+                    case "SELECT":
+                        if (Array.isArray(_new_value)) {
+                            _debug = [];
+                            for (let option of Array.from(node.reference[0].options)) {
+                                option.selected = _new_value.includes(option.value) || _new_value.includes(option.text);
+                                if (option.selected)
+                                    _debug.push(option.value);
+                            }
+                        }
+                        else {
+                            _debug = _new_value;
+                            node.reference[0].value = _debug;
+                        }
+                        break;
+                    default:
+                        _debug = this.readValue(node.context, node.settings);
+                        if (_debug) {
+                            let _element = Support.templateFromString(_debug.toString())?.firstChild;
+                            node.removeChildren();
+                            if (_element)
+                                node.append(_element);
+                        }
+                        break;
+                }
+                this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });
             }
-            this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
         }
     }
     accept(options) {
@@ -296,57 +308,72 @@ class cModel extends Command {
         this._handler.trigger(Collection.node_event.setup, options);
     }
     readValue(context, settings) {
-        return this.reference ? Support.format(Support.getValue(context, this.reference), settings?.formatters) : "";
+        try {
+            return this.reference ? Support.format(Support.getValue(context, this.reference), settings?.formatters) : "";
+        }
+        catch (ex) {
+            throw ex;
+        }
     }
     updateDataSet(input) {
-        if (this.reference) {
-            let _element = input.reference[0];
-            let _value = Support.getValue(input.context, this.reference);
-            let _new_value = _element.value;
-            let _input_type = _element.getAttribute("type");
-            switch (input.nodeName) {
-                case "SELECT":
-                    if (Array.isArray(_value)) {
-                        if (_value.includes(_new_value)) {
-                            Support.setValue(input.context, this.reference, _value.filter(e => e != _new_value));
+        try {
+            if (this.reference) {
+                let _element = input.reference[0];
+                let _value = Support.getValue(input.context, this.reference);
+                let _new_value = _element.value;
+                let _input_type = _element.getAttribute("type");
+                switch (input.nodeName) {
+                    case "SELECT":
+                        if (Array.isArray(_value)) {
+                            if (_value.includes(_new_value)) {
+                                Support.setValue(input.context, this.reference, _value.filter(e => e != _new_value));
+                            }
+                            else {
+                                Support.setValue(input.context, this.reference, _value.push(_new_value));
+                            }
                         }
                         else {
-                            Support.setValue(input.context, this.reference, _value.push(_new_value));
+                            Support.setValue(input.context, this.reference, _new_value);
                         }
-                    }
-                    else {
-                        Support.setValue(input.context, this.reference, _new_value);
-                    }
-                    break;
-                default:
-                    switch (_input_type) {
-                        case "checkbox":
-                        case "radio":
-                            if (_new_value) {
-                                if (Array.isArray(_value)) {
-                                    if (_input_type == "radio")
-                                        Support.setValue(input.context, this.reference, []);
-                                    if (_value.includes(_new_value)) {
-                                        Support.setValue(input.context, this.reference, _value.filter(e => e != _new_value));
+                        break;
+                    default:
+                        switch (_input_type) {
+                            case "checkbox":
+                            case "radio":
+                                if (_new_value == "on")
+                                    _new_value = "";
+                                if (_new_value) {
+                                    if (Array.isArray(_value)) {
+                                        if (_input_type == "radio")
+                                            Support.setValue(input.context, this.reference, []);
+                                        if (_value.includes(_new_value)) {
+                                            Support.setValue(input.context, this.reference, _value.filter(e => e != _new_value));
+                                        }
+                                        else {
+                                            Support.setValue(input.context, this.reference, _value.push(_new_value));
+                                        }
                                     }
                                     else {
-                                        Support.setValue(input.context, this.reference, _value.push(_new_value));
+                                        Support.setValue(input.context, this.reference, _element.checked ? _new_value : "");
                                     }
                                 }
                                 else {
-                                    Support.setValue(input.context, this.reference, input.element.checked ? _new_value : "");
+                                    Support.setValue(input.context, this.reference, _element.checked);
                                 }
-                            }
-                            else {
-                                Support.setValue(input.context, this.reference, input.element.checked);
-                            }
-                            break;
-                        default:
-                            Support.setValue(input.context, this.reference, _new_value);
-                            break;
-                    }
-                    break;
+                                break;
+                            default:
+                                let _val = Number(_new_value);
+                                if (!Number.isNaN(_val))
+                                    _new_value = _val;
+                                Support.setValue(input.context, this.reference, _new_value);
+                                break;
+                        }
+                        break;
+                }
             }
+        }
+        catch (ex) {
+            throw ex;
         }
     }
     clone(attribute) {
@@ -361,7 +388,7 @@ class cFor extends Command {
     /**separator key in command attribute */
     separator = " in ";
     /**Index reference used inside the template */
-    index = ":index";
+    static index = ":index";
     /**template to repeat */
     template = "";
     /**alias of data used inside the template */
@@ -371,30 +398,85 @@ class cFor extends Command {
     _filter = "";
     _sort = "";
     _desc = false;
-    _data_length = 0;
-    _nodes_backup = [];
+    _backup = [];
     constructor(attribute) {
         super(attribute);
     }
     render(node) {
         try {
+            let _me = this;
             let _data = this.sort(Support.getValue(node.context, this.reference)); //getting data
-            if (_data != null && _data.length != this._data_length) {
+            if (_data != null) {
                 if (_data && Array.isArray(_data)) {
-                    node.incubator.textContent = ""; //reset node incubator
-                    this._nodes_backup = [];
-                    for (let i = 0; i < _data.length; i++) {
-                        //Duplicate parent context for iteration
-                        let _context = Support.cloneCollection(node.context);
-                        //filter item based on filter settings
-                        if (this.filter(_data[i], i)) {
-                            //build and prepare html template code
-                            let _html = this.template.replace(new RegExp(this.index, "g"), i.toString());
-                            _html = _html.replaceAll(this.index, i.toString());
-                            //convert html string code to Document Fragment
-                            let _template = Support.templateFromString(_html)?.firstChild;
-                            //Initialize virtual node tree of template
-                            let _new_node = vNode.newInstance(_template, node.settings);
+                    node.placeFlag(async (node) => {
+                        oldREnderingMethod();
+                        // newRenderingMethod();
+                        this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
+                        return this._backup.length > 0;
+                        function oldREnderingMethod() {
+                            node.incubator.textContent = ""; //reset node incubator
+                            for (let i = 0; i < _data.length; i++) {
+                                //Duplicate parent context for iteration
+                                let _context = Support.cloneCollection(node.context);
+                                //build and prepare html template code
+                                let _template = elaborateTemplate(i);
+                                //Initialize virtual node tree of template
+                                let _new_node = setupNewNode(_template, i, _context); //render template content
+                                for (const render of _new_node.reference) {
+                                    node.incubator.appendChild(render);
+                                }
+                            }
+                            node.replaceNodes(); //replace current reference with elaborated value
+                        }
+                        // function newRenderingMethod() {
+                        //     for (let i = 0; i < _data.length; i++) {
+                        //         let _rendered = _me._backup.find(e => e.context[_me.alias] == _data[i]);
+                        //         //filter item based on filter settings
+                        //         if (_me.filter(_data[i], i)) {
+                        //             if (_rendered) {
+                        //                 _rendered.update();
+                        //             } else {
+                        //                 //Duplicate parent context for iteration
+                        //                 let _context = Support.cloneCollection(node.context);
+                        //                 //build and prepare html template code
+                        //                 let _template = elaborateTemplate(i);
+                        //                 //Initialize virtual node tree of template
+                        //                 let _new_node = setupNewNode(_template, i, _context); //render template content
+                        //                 //inject the result in node's incubator
+                        //                 if (i > 0) {
+                        //                     let _before = _me._backup[i - 1];
+                        //                     if (_before) {
+                        //                         let _reference = _before.reference[_before.reference.length - 1];
+                        //                         if (_reference) {
+                        //                             for (const render of _new_node.reference) {
+                        //                                 (<Element>_reference).after(render);
+                        //                             }
+                        //                         }
+                        //                     } else {
+                        //                         log("Unable to find previous element in array " + _me.reference, Collection.message_type.warning);
+                        //                     }
+                        //                 } else {
+                        //                     for (const element of node.reference) {
+                        //                         (<HTMLElement>element).remove();
+                        //                     }
+                        //                     for (const render of _new_node.reference) {
+                        //                         node.flag.after(render);
+                        //                     }
+                        //                 }
+                        //                 _me._backup?.push(_new_node);
+                        //             }
+                        //         } else {
+                        //             if (_rendered) {
+                        //                 _me._backup = _me._backup.filter(e => e !== _rendered);
+                        //                 for (const el of _rendered.reference) {
+                        //                     (<Element>el).remove();
+                        //                 }
+                        //             }
+                        //         }
+                        //     }
+                        // }
+                        function setupNewNode(_template, i, _context) {
+                            let _new_node = vNode.newInstance(_template, node);
                             //setup internal reactivity rules with passive dynamic update of parent data 
                             let _reactive = {
                                 get: (_target, _key) => {
@@ -407,49 +489,45 @@ class cFor extends Command {
                                         Support.setValue(_data[i], _key, newvalue);
                                     else
                                         _data[i] = newvalue;
-                                    _new_node.update(true);
+                                    _new_node.update();
                                 }
                             };
                             //inject current array value into internal context
                             if (Support.isPrimitive(_data[i])) {
-                                ref(_context, this.alias, _data[i], _reactive);
+                                ref(_context, _me.alias, _data[i], _reactive);
                             }
                             else {
-                                _context[this.alias] = react(_data[i], _reactive);
+                                _context[_me.alias] = react(_data[i], _reactive);
                             }
                             _new_node.onDataset((data) => {
                                 if (Support.isPrimitive(_data[i])) {
-                                    ref(data, this.alias, _data[i], _reactive);
+                                    ref(data, _me.alias, _data[i], _reactive);
                                 }
                                 else {
-                                    data[this.alias] = react(_data[i], _reactive);
+                                    data[_me.alias] = react(_data[i], _reactive);
                                 }
                             });
                             _new_node.setup();
-                            _new_node.elaborate(_context, node.settings); //render template content
-                            //inject the result in node's incubator
-                            for (const render of _new_node.reference) {
-                                node.incubator.appendChild(render);
-                            }
-                            this._nodes_backup?.push(_new_node);
+                            _new_node.elaborate(_context); //render template content
+                            return _new_node;
                         }
-                    }
-                    this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
-                    node.replaceNodes(); //replace current reference with elaborated value
+                        function elaborateTemplate(index) {
+                            let _html = _me.template.replace(new RegExp(cFor.index, "g"), index.toString());
+                            _html = _html.replaceAll(cFor.index, index.toString());
+                            //convert html string code to Document Fragment
+                            let _template = Support.templateFromString(_html)?.firstChild;
+                            return _template;
+                        }
+                    });
                 }
             }
-            else {
-                for (const node of this._nodes_backup) {
-                    node.update(true);
-                }
-            }
-            this._data_length = _data.length;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     accept(options) {
+        this._backup = [];
         this.template = options.others?.template;
         this._filter = options.others?.filter;
         this._desc = options.others?.sort?.toLowerCase().includes("desc");
@@ -462,23 +540,33 @@ class cFor extends Command {
         this._handler.trigger(Collection.node_event.setup, options);
     }
     sort(data) {
-        if (data && this._sort) {
-            let _param = this._sort
-                .replace(this.alias + ".", "")
-                .replace(this.alias, "")
-                .trim();
-            return data.sort(Support.dynamicSort(_param, this._desc));
+        try {
+            if (data && this._sort) {
+                let _param = this._sort
+                    .replace(this.alias + ".", "")
+                    .replace(this.alias, "")
+                    .trim();
+                return data.sort(Support.dynamicSort(_param, this._desc));
+            }
+            return data;
         }
-        return data;
+        catch (ex) {
+            throw ex;
+        }
     }
     filter(item, index) {
-        if (this._filter) {
-            let _function = "return " + this._filter
-                .replace(new RegExp(this.index, "g"), index.toString())
-                .replace(new RegExp(this.alias, "g"), "this");
-            return Support.runFunctionByString(_function, item);
+        try {
+            if (this._filter) {
+                let _function = "return " + this._filter
+                    .replace(new RegExp(cFor.index, "g"), index.toString())
+                    .replace(new RegExp(this.alias, "g"), "this.iter");
+                return Support.runFunctionByString(_function, { iter: item });
+            }
+            return true;
         }
-        return true;
+        catch (ex) {
+            throw ex;
+        }
     }
     clone(attribute) {
         return new cFor(attribute);
@@ -495,13 +583,18 @@ class cOn extends Command {
         super(attribute);
     }
     render(node) {
-        let _me = this;
-        if (!this.setted && node.reference.length) {
-            node.reference[0].addEventListener(this.event.name, function (evt) {
-                _me._handler.trigger(Collection.node_event.render, _me.event.name);
-                return _me.event.action(evt, node.context);
-            });
-            this.setted = true;
+        try {
+            let _me = this;
+            if (!this.setted && node.reference.length) {
+                node.reference[0].addEventListener(this.event.name, function (evt) {
+                    _me._handler.trigger(Collection.node_event.render, _me.event.name);
+                    return _me.event.action(evt, node.context);
+                });
+                this.setted = true;
+            }
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
         }
     }
     accept(options) {
@@ -520,6 +613,7 @@ class cIf extends Command {
     static key_elseif = "cmd-elseif";
     static key_else = "cmd-else";
     static regexp = /(CMD-IF)|(cmd-if)/gm;
+    active_node;
     conditions = [];
     constructor(attribute) {
         super(attribute);
@@ -527,31 +621,56 @@ class cIf extends Command {
     render(node) {
         try {
             node.incubator.textContent = ""; //reset node incubator
-            let _render = false;
+            let _replaced = false;
             let i = 0;
-            while (!_render && i < this.conditions.length) {
-                _render = this.conditions[i].condition(node.context);
-                let _template = this.conditions[i].template?.cloneNode(true);
-                if (_render && _template) {
-                    let _vnode = vNode.newInstance(_template, node.settings);
-                    _vnode.setup();
-                    _vnode.elaborate(node.context, node.settings);
-                    //inject the result in node's incubator
-                    for (const render of _vnode.reference) {
-                        node.incubator.appendChild(render);
+            while (i < this.conditions.length) {
+                if (this.conditions[i].condition(node.context)) {
+                    let _template = this.conditions[i].template?.cloneNode(true);
+                    if (_template && !this.conditions[i].active) {
+                        this.active_node = virtualizeTemplate(_template);
+                        //inject the result in node's incubator
+                        buildIncubator(this.active_node);
+                        _replaced = true;
+                        this._handler.trigger(Collection.node_event.render, {
+                            condition: this.conditions[i].condition.toString(),
+                            original: this.conditions[i].template,
+                            stamp: this.active_node
+                        });
                     }
-                    this._handler.trigger(Collection.node_event.render, {
-                        condition: this.conditions[i].condition.toString(),
-                        original: this.conditions[i].template,
-                        stamp: _vnode
-                    });
+                    this.activeCondition(i);
+                    break;
+                }
+                else {
+                    if (this.conditions[i].active) {
+                        _replaced = true;
+                        this.conditions[i].active = false;
+                        this.active_node = undefined;
+                    }
                 }
                 i++;
             }
-            node.replaceNodes(); //replace current reference with elaborated value
+            if (_replaced || this.conditions.find((c) => c.active) == null) {
+                //replace current reference with elaborated value
+                node.replaceNodes();
+            }
+            else {
+                if (this.active_node)
+                    this.active_node.update();
+            }
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
+        }
+        function buildIncubator(_vnode) {
+            for (const render of _vnode.reference) {
+                node.incubator.appendChild(render);
+            }
+        }
+        function virtualizeTemplate(_template) {
+            let _vnode = vNode.newInstance(_template, node);
+            _vnode.setup();
+            _vnode.elaborate();
+            return _vnode;
         }
     }
     accept(options) {
@@ -560,6 +679,13 @@ class cIf extends Command {
     }
     clone(attribute) {
         return new cIf(attribute);
+    }
+    activeCondition(index) {
+        let i = 0;
+        while (i < this.conditions.length) {
+            this.conditions[i].active = i == index;
+            i++;
+        }
     }
 }
 class cBind extends Command {
@@ -571,21 +697,26 @@ class cBind extends Command {
         super(attribute);
     }
     render(node) {
-        if (node.reference.length && this.reference && this.attribute_bind) {
-            let _value = elaborateContent(this.reference, node.context);
-            if (typeof _value == 'boolean' || _value == null) {
-                if (_value)
-                    node.reference[0].setAttribute(this.attribute_bind, "");
-                else
-                    node.reference[0].removeAttribute(this.attribute_bind);
+        try {
+            if (node.reference.length && node.reference[0].nodeType == Node.ELEMENT_NODE && this.reference && this.attribute_bind) {
+                let _value = elaborateContent(this.reference, node.context);
+                if (typeof _value == 'boolean' || _value == null) {
+                    if (_value)
+                        node.reference[0].setAttribute(this.attribute_bind, "");
+                    else
+                        node.reference[0].removeAttribute(this.attribute_bind);
+                }
+                else {
+                    node.reference[0].setAttribute(this.attribute_bind, _value);
+                }
+                this._handler.trigger(Collection.node_event.render, {
+                    attribute: this.attribute_bind,
+                    stamp: _value
+                });
             }
-            else {
-                node.reference[0].setAttribute(this.attribute_bind, _value);
-            }
-            this._handler.trigger(Collection.node_event.render, {
-                attribute: this.attribute_bind,
-                stamp: _value
-            });
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
         }
     }
     accept(options) {

@@ -294,4 +294,31 @@ export var Support;
     // export function getParentContext(node: vNode): DataCollection {
     //     return key_parent in node.context ? node.context[key_parent] : node.context;
     // }
+    /**Get all comments from root dom element */
+    function getComment(content) {
+        // Fourth argument, which is actually obsolete according to the DOM4 standard, is required in IE 11
+        var iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone);
+        var curNode;
+        while (curNode = iterator.nextNode()) {
+            if (curNode.nodeValue === content)
+                return curNode;
+        }
+        return null;
+        function filterNone() {
+            return NodeFilter.FILTER_ACCEPT;
+        }
+    }
+    Support.getComment = getComment;
 })(Support || (Support = {}));
+export var View;
+(function (View) {
+    function darkmode() {
+        if (document.body.getAttribute("theme")) {
+            document.body.setAttribute("theme", "");
+        }
+        else {
+            document.body.setAttribute("theme", "dark");
+        }
+    }
+    View.darkmode = darkmode;
+})(View || (View = {}));

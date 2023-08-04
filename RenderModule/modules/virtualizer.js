@@ -343,7 +343,7 @@ export class vNode {
     /**Replace reference with incubator's content or place a flag if incubator is empty*/
     replaceNodes() {
         try {
-            this.placeFlag(async function (node) {
+            this.placeFlag((node) => {
                 if (node.reference.length) {
                     // (<HTMLElement>node.reference[node.reference.length - 1]).after(node.flag);
                     for (let ref of node.reference) {
@@ -370,10 +370,8 @@ export class vNode {
         let _position = bottom ? this.reference.length - 1 : 0;
         if (this._reference.length > 0)
             this.reference[_position].after(this.flag);
-        elaborate(this).then((remove) => {
-            if (remove)
-                this.flag.remove();
-        });
+        if (elaborate(this))
+            this.flag.remove();
     }
     //#endregion
     //#region CHILDREN
@@ -453,6 +451,7 @@ export class vTemplate extends vNode {
     constructor(reference, template, options, parent) {
         super(reference, parent, options?.settings);
         this.createTemplate(reference, template, options);
+        this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
     createTemplate(original, template, options) {
         this.template = template;
@@ -490,13 +489,13 @@ export class vTemplate extends vNode {
         }
         if (options?.content)
             this.content_tags = options.content;
-        let _render = this.getRender();
+        this._incubator = this.getRender();
         if (!this.commandDriven)
-            this.vtemplate_children = this.mapTemplatechildren(_render, this.settings);
-        this.load(_render);
+            this.vtemplate_children = this.mapTemplatechildren(this.incubator, this.settings);
     }
     setup() {
         try {
+            this.load();
             super.setup();
             for (const child of this.vtemplate_children) {
                 child.setup();
@@ -527,32 +526,32 @@ export class vTemplate extends vNode {
     }
     async buildContext() {
         let _update;
-        if (this._commands.find(c => c instanceof cFor))
-            _update = { exclude: [this.id] };
         return Support.elaborateContext(this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
             .then((output) => {
             output["__node"] = this;
             for (const attr of this.attributes) {
-                ref(output, attr.prop, attr.ref, {
-                    handler: this._handler,
-                    node: this,
-                    get: (_target, _key, _context) => {
-                        if (attr.ref) {
-                            //parent.context ? 
-                            return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
+                if (!(attr.prop in output && attr.name == "")) {
+                    let _options = {
+                        handler: this._handler,
+                        node: this,
+                        get: (_target, _key, _context) => {
+                            if (attr.ref) {
+                                //parent.context ? 
+                                return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
+                            }
+                            return null;
+                        },
+                        set: (_target, _key, newvalue) => {
+                            if (attr.dynamic && attr.ref != null) {
+                                //parent.context ?
+                                Support.setValue(this.context, attr.ref, newvalue);
+                            }
                         }
-                        return null;
-                    },
-                    set: (_target, _key, newvalue) => {
-                        if (attr.dynamic && attr.ref != null) {
-                            //parent.context ?
-                            Support.setValue(this.context, attr.ref, newvalue);
-                        }
-                    },
-                    update: _update
-                });
-                if (attr.name && this.reference.length > 0)
-                    this.reference[0].removeAttribute(attr.name);
+                    };
+                    ref(output, attr.prop, attr.ref, _options);
+                    if (attr.name && this.reference.length > 0)
+                        this.reference[0].removeAttribute(attr.name);
+                }
             }
             return output;
         });
@@ -574,7 +573,7 @@ export class vTemplate extends vNode {
         return _children;
     }
     /**Elaborate complete template replacement */
-    load(render) {
+    load() {
         try {
             //Collecting all non commands and out of dataset attributes of custom tag
             let _attributes = [];
@@ -595,7 +594,7 @@ export class vTemplate extends vNode {
             if (this.content_tags.length) {
                 for (let tag of this.content_tags) {
                     let _element = _content.querySelector("[content='" + tag + "']");
-                    let _insider = render.getElementById(tag);
+                    let _insider = this.incubator.getElementById(tag);
                     if (_element && _insider) {
                         _element.removeAttribute("content");
                         _insider.parentNode?.replaceChild(_element, _insider);
@@ -604,18 +603,18 @@ export class vTemplate extends vNode {
             }
             else {
                 while (_content.childNodes.length) {
-                    render.firstChild?.appendChild(_content.childNodes[0]);
+                    this.incubator.firstChild?.appendChild(_content.childNodes[0]);
                 }
             }
             //Copying all extra custom tag's attributes on first render child node if it is a Node Element
-            if (render.firstChild?.nodeType == Node.ELEMENT_NODE) {
-                let _element = render.firstChild;
+            if (this.incubator.firstChild?.nodeType == Node.ELEMENT_NODE) {
+                let _element = this.incubator.firstChild;
                 for (const attr of _attributes) {
                     _element.setAttribute(attr, (_element.hasAttribute(attr) ? _element.getAttribute(attr) + " " : "") + this.element?.getAttribute(attr));
                 }
             }
-            this._handler.trigger(Collection.node_event.render, render, this);
-            this._incubator = render;
+            this._handler.trigger(Collection.node_event.render, this.incubator, this);
+            this.incubator.querySelectorAll("ref").forEach(e => e.remove());
             this.replaceNodes();
         }
         catch (ex) {

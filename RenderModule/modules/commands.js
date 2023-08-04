@@ -405,10 +405,11 @@ class cFor extends Command {
     render(node) {
         try {
             let _me = this;
-            let _data = this.sort(Support.getValue(node.context, this.reference)); //getting data
+            let _data = this.sort(Support.getValue(node.context, this.reference), node); //getting data
+            _data = _data.filter((e) => this.filter(e, _data.indexOf(e)));
             if (_data != null) {
                 if (_data && Array.isArray(_data)) {
-                    node.placeFlag(async (node) => {
+                    node.placeFlag((node) => {
                         oldREnderingMethod();
                         // newRenderingMethod();
                         this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
@@ -539,14 +540,24 @@ class cFor extends Command {
         }
         this._handler.trigger(Collection.node_event.setup, options);
     }
-    sort(data) {
+    sort(data, node) {
         try {
             if (data && this._sort) {
-                let _param = this._sort
-                    .replace(this.alias + ".", "")
-                    .replace(this.alias, "")
-                    .trim();
-                return data.sort(Support.dynamicSort(_param, this._desc));
+                let _param = this._sort;
+                if (!(_param in data[0])) {
+                    _param = elaborateContent(this._sort, node.context);
+                    if (_param.includes("desc")) {
+                        this._desc = true;
+                        _param = _param.replace("desc", "").trim();
+                    }
+                }
+                if (_param) {
+                    _param = _param
+                        .replace(this.alias + ".", "")
+                        .replace(this.alias, "")
+                        .trim();
+                    return data.sort(Support.dynamicSort(_param, this._desc));
+                }
             }
             return data;
         }

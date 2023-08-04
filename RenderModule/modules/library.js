@@ -1,6 +1,6 @@
 import { Collection } from "./enumerators.js";
 import { primitive_types } from "./global.js";
-import { react, ref } from "./reactive.js";
+import { _vault_key, react, ref } from "./reactive.js";
 export var Support;
 (function (Support) {
     /**Execute a stringified function */
@@ -148,7 +148,7 @@ export var Support;
                 // let _parent = "__parent" in prop ? prop.__parent : null;
                 let _array_path = path.replace(/\]/g, "").split(/[.\[]+/g);
                 for (var i = 0; i < _array_path.length; i++) {
-                    if (prop != null && _array_path[i] in prop) {
+                    if (prop != null && !isPrimitive(prop) && _array_path[i] in prop) {
                         prop = prop[_array_path[i]];
                     }
                     else {
@@ -265,16 +265,31 @@ export var Support;
     function cloneCollection(context) {
         try {
             let _data = {};
-            for (const key of Object.keys(context)) {
-                if (typeof context[key] == "function") {
-                    _data[key] = context[key];
-                }
-                else {
-                    if (Array.isArray(context[key])) {
-                        _data[key] = duplicateArray(context[key]);
+            for (const key of Reflect.ownKeys(context)) {
+                if (key != _vault_key) {
+                    if (typeof Reflect.get(context, key) == "function") {
+                        Reflect.set(_data, key, Reflect.get(context, key));
                     }
                     else {
-                        _data[key] = structuredClone(context[key]);
+                        let _reactive = {
+                            get: (_target, _key) => {
+                                if (_key && !isPrimitive(Reflect.get(context, key)))
+                                    return Reflect.get(context, key)[_key];
+                                return Reflect.get(context, key);
+                            },
+                            set: (_target, _key, newvalue) => { Reflect.set(context, key, newvalue); }
+                        };
+                        if (Support.isPrimitive(Reflect.get(context, key))) {
+                            ref(_data, key.toString(), Reflect.get(context, key), _reactive);
+                        }
+                        else {
+                            if (Reflect.get(context, key) != null) {
+                                Reflect.set(_data, key, react(Reflect.get(context, key), _reactive));
+                            }
+                            else {
+                                Reflect.set(_data, key, null);
+                            }
+                        }
                     }
                 }
             }
@@ -290,10 +305,6 @@ export var Support;
         return typeof value == 'function' && Array.isArray(value());
     }
     Support.isArray = isArray;
-    /**Get parent context if it exists instead of current context */
-    // export function getParentContext(node: vNode): DataCollection {
-    //     return key_parent in node.context ? node.context[key_parent] : node.context;
-    // }
     /**Get all comments from root dom element */
     function getComment(content) {
         // Fourth argument, which is actually obsolete according to the DOM4 standard, is required in IE 11

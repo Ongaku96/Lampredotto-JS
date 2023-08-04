@@ -1,8 +1,8 @@
 import { Support } from "./library.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
+export const _vault_key = "__vault";
 export function ref(target, key, value = null, options) {
-    const _vault_key = "__vault";
     if (target[_vault_key] == null)
         target[_vault_key] = {};
     Support.setValue(target[_vault_key], key, value);

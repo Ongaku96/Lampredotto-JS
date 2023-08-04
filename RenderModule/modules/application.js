@@ -119,8 +119,8 @@ class Application {
                 document.documentElement.style.setProperty(`--${name}-h`, `${h}deg`);
                 document.documentElement.style.setProperty(`--${name}-s`, `${s}%`);
                 document.documentElement.style.setProperty(`--${name}-l`, `${l}%`);
-                document.documentElement.style.setProperty(`--${name}-a`, "1");
             }
+            document.documentElement.style.setProperty(`--${name}-a`, hex == "" || hex == "transparent" ? "0" : "1");
         }
     }
     dismiss() {

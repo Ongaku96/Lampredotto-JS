@@ -1,6 +1,6 @@
 import { vNode } from "./virtualizer.js";
 import { Support } from "./library.js";
-import { elaborateContent, react, ref } from "./reactive.js";
+import { elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import EventHandler from "./events.js";
@@ -545,11 +545,9 @@ class cFor extends Command {
             if (data && this._sort) {
                 let _param = this._sort;
                 if (!(_param in data[0])) {
-                    _param = elaborateContent(this._sort, node.context);
-                    if (_param.includes("desc")) {
-                        this._desc = true;
-                        _param = _param.replace("desc", "").trim();
-                    }
+                    _param = renderBrackets(this._sort, node.context, node.settings);
+                    this._desc = _param.includes("desc");
+                    _param = _param.replace("desc", "").trim();
                 }
                 if (_param) {
                     _param = _param

@@ -2,7 +2,11 @@ import "./global.js";
 /**Management of event collection*/
 export default class EventHandler {
     events = [];
-    constructor() { }
+    context;
+    constructor(dataset) {
+        if (dataset)
+            this.setContext(dataset);
+    }
     /**Store the event into the component, it will add the event event the name already exists*/
     on(event, action) {
         this.events?.push({ name: event, action: action });
@@ -19,14 +23,12 @@ export default class EventHandler {
         }
     }
     /**Trigger the named event */
-    async trigger(name, ...args) {
+    trigger(name, ...args) {
         try {
-            let _event = this.events?.find((e) => e.name == name);
+            let _event = this.events?.filter((e) => e.name == name);
             if (_event != null) {
-                return _event.action(...args);
+                _event.forEach(e => this.context != null ? e.action.call(this.context, ...args) : e.action(...args));
             }
-            //console.warn(`The event named ${name} was not found.`);
-            return null;
         }
         catch (ex) {
             throw ex;
@@ -35,5 +37,8 @@ export default class EventHandler {
     /**Check if the component contains that event */
     includeEvent(name) {
         return this.events?.find((s) => s.name == name) != null;
+    }
+    setContext(dataset) {
+        this.context = dataset;
     }
 }

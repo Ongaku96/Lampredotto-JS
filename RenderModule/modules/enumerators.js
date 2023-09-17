@@ -37,6 +37,8 @@ export var Collection;
         lifecycle[lifecycle["unmounted"] = 9] = "unmounted";
         lifecycle[lifecycle["error"] = 10] = "error";
         lifecycle[lifecycle["server"] = 11] = "server";
+        lifecycle[lifecycle["context_creating"] = 12] = "context_creating";
+        lifecycle[lifecycle["context_created"] = 13] = "context_created";
     })(lifecycle = Collection.lifecycle || (Collection.lifecycle = {}));
     let command;
     (function (command) {

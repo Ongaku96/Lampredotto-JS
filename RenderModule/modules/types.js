@@ -1,14 +1,42 @@
 import "./global.js";
 import { Collection } from "./enumerators.js";
 import { Support } from "./library.js";
+import log from "./console.js";
 class ApplicationBuilder {
     application;
+    get app() { return this.application; }
     constructor(application) {
         this.application = application;
     }
     async build(options) {
-        await this.application.build(options);
-        return this;
+        try {
+            this.application.build(options).then(() => {
+                this.application.elaborate();
+            });
+            return this.app;
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+        finally {
+            return this.app;
+        }
+    }
+    async update(options) {
+        try {
+            this.application.build(options).then(() => {
+                this.application.update();
+            });
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+        finally {
+            return this.app;
+        }
+    }
+    async dismiss() {
+        this.application.dismiss();
     }
 }
 /**Represent a dynamic action that can be bound to an event and converted to json*/

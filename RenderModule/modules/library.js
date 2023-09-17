@@ -1,6 +1,6 @@
 import { Collection } from "./enumerators.js";
 import { primitive_types } from "./global.js";
-import { _vault_key, react, ref } from "./reactive.js";
+import { _vault_key, react } from "./reactive.js";
 export var Support;
 (function (Support) {
     /**Execute a stringified function */
@@ -13,7 +13,7 @@ export var Support;
                 let _formatted_match = match.slice(1);
                 return `this${_formatted_match}`;
             });
-            if (!_script.includes("this") && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\""))
+            if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\""))
                 _script = "\"" + _script + "\"";
             if (!_script.includes("return") && _return)
                 _script = "return " + _script;
@@ -21,7 +21,7 @@ export var Support;
             return _function.call(context, evt);
         }
         catch (ex) {
-            throw ex;
+            throw "error executing script {" + script + "}: " + ex;
         }
     }
     Support.runFunctionByString = runFunctionByString;
@@ -145,7 +145,6 @@ export var Support;
     function getValue(prop, path) {
         try {
             if (path && typeof path == "string") {
-                // let _parent = "__parent" in prop ? prop.__parent : null;
                 let _array_path = path.replace(/\]/g, "").split(/[.\[]+/g);
                 for (var i = 0; i < _array_path.length; i++) {
                     if (prop != null && !isPrimitive(prop) && _array_path[i] in prop) {
@@ -214,23 +213,12 @@ export var Support;
     }
     Support.templateFromString = templateFromString;
     /**Build render reactive data context joining all data sets, actions and computed parameters */
-    async function elaborateContext(dataset, reactivity, actions, computed) {
-        let _context = {};
+    async function elaborateContext(context, dataset, reactivity, actions, computed) {
         //Define values from dataset
         if (dataset) {
             for (let param of Object.keys(dataset)) {
                 try {
-                    if (Support.isPrimitive(Support.getValue(dataset, param))) {
-                        ref(_context, param, Support.getValue(dataset, param), reactivity);
-                    }
-                    else {
-                        _context[param] = react(dataset[param], reactivity);
-                        // if (Array.isArray(dataset[param])) {
-                        //     ArrayProxy(dataset[param], reactivity);
-                        // } else {
-                        //     _context[param] = react(dataset[param], reactivity);
-                        // }
-                    }
+                    context[param] = react(dataset[param], reactivity);
                 }
                 catch (ex) {
                     throw ex;
@@ -240,20 +228,20 @@ export var Support;
         //define values from actions
         if (actions) {
             for (let action of Object.keys(actions)) {
-                _context[action] = function (...args) { return actions[action].call(_context, ...args); };
+                context[action] = function (...args) { return actions[action].call(react(context, reactivity), ...args); };
             }
         }
         //define values from getters
         if (computed) {
             for (let getter of Object.keys(computed)) {
-                Object.defineProperty(_context, getter, {
+                Object.defineProperty(context, getter, {
                     get() {
-                        return computed[getter].call(_context);
+                        return computed[getter].call(react(context, reactivity));
                     }
                 });
             }
         }
-        return _context;
+        return context;
     }
     Support.elaborateContext = elaborateContext;
     /**Check if debug mode is active */
@@ -267,30 +255,21 @@ export var Support;
             let _data = {};
             for (const key of Reflect.ownKeys(context)) {
                 if (key != _vault_key) {
-                    if (typeof Reflect.get(context, key) == "function") {
-                        Reflect.set(_data, key, Reflect.get(context, key));
-                    }
-                    else {
-                        let _reactive = {
-                            get: (_target, _key) => {
-                                if (_key && !isPrimitive(Reflect.get(context, key)))
-                                    return Reflect.get(context, key)[_key];
-                                return Reflect.get(context, key);
-                            },
-                            set: (_target, _key, newvalue) => { Reflect.set(context, key, newvalue); }
-                        };
-                        if (Support.isPrimitive(Reflect.get(context, key))) {
-                            ref(_data, key.toString(), Reflect.get(context, key), _reactive);
+                    // get: (_target: any, _key: any) => {
+                    //     if (_key && !isPrimitive(Reflect.get(context, key))) return Reflect.get(context, key)[_key];
+                    //     return Reflect.get(context, key);
+                    // },
+                    let _react = {
+                        set: (_target, _key, newvalue) => {
+                            if (newvalue != Reflect.get(context, key))
+                                Reflect.set(context, key, newvalue);
                         }
-                        else {
-                            if (Reflect.get(context, key) != null) {
-                                Reflect.set(_data, key, react(Reflect.get(context, key), _reactive));
-                            }
-                            else {
-                                Reflect.set(_data, key, null);
-                            }
-                        }
-                    }
+                    };
+                    // if (Support.isPrimitive(Reflect.get(context, key))) {
+                    //     ref(context, key.toString(), _react);
+                    // } else {
+                    Reflect.set(_data, key, react(Reflect.get(context, key), _react));
+                    // }
                 }
             }
             return _data;
@@ -320,6 +299,11 @@ export var Support;
         }
     }
     Support.getComment = getComment;
+    /**Check if event is native */
+    function isNativeEvent(eventname) {
+        return typeof Reflect.get(document.body, "on" + eventname) !== "undefined";
+    }
+    Support.isNativeEvent = isNativeEvent;
 })(Support || (Support = {}));
 export var View;
 (function (View) {

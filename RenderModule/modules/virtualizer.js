@@ -1,7 +1,7 @@
 import { Support } from "./library.js";
 import { Collection, command_matches } from "./enumerators.js";
 import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
-import { elaborateContent, ref, renderBrackets } from "./reactive.js";
+import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
 import log from "./console.js";
 export class vNode {
@@ -23,7 +23,7 @@ export class vNode {
     settings = { debug: true, debug_mode: Collection.debug_mode.all };
     //#endregion
     //#region PRIVATE
-    _handler = new EventHandler(); //events utility management
+    _handler = new EventHandler(this.context); //events utility management
     _incubator = document.createDocumentFragment(); //node's space for rendering elaboration
     _reference = []; //node reference
     _commands = []; //list of framework commands stored in virtual Node
@@ -36,10 +36,11 @@ export class vNode {
     //#region PROPERTIES
     set state(value) {
         this._state = value;
-        this._handler.trigger(Collection.node_event.progress, Collection.lifecycle[this.state]);
+        this._handler.trigger(Collection.node_event.progress, this.current_state);
     }
     /**State of node's elaboration */
     get state() { return this._state; }
+    get current_state() { return Collection.lifecycle[this.state]; }
     /**Original element in case node is HTML Element */
     get element() { return this.backup.nodeType == Node.ELEMENT_NODE ? this.backup : null; }
     /**Node's children */
@@ -104,7 +105,6 @@ export class vNode {
     }
     /**Definition of node's dynamic elements like commands */
     setup() {
-        this.state = Collection.lifecycle.setup;
         try {
             if (!this.static) {
                 this.incubator.appendChild(this.backup.cloneNode(false));
@@ -124,6 +124,7 @@ export class vNode {
             for (const child of this.children) {
                 child.setup();
             }
+            this.state = Collection.lifecycle.setup;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -142,6 +143,7 @@ export class vNode {
             this.context = context ?
                 context : (this.parent ?
                 this.parent.context : {});
+            this._handler.setContext(this.context);
             this.render().then(() => {
                 this.state = Collection.lifecycle.mounted;
             });
@@ -238,8 +240,6 @@ export class vNode {
     }
     /**Merge parent Settings with personal settings */
     mergeSettings(settings) {
-        if (settings.darkmode != null)
-            this.settings.darkmode = settings.darkmode;
         if (settings.debug != null)
             this.settings.debug = settings.debug;
         if (settings.debug_mode != null)
@@ -267,6 +267,9 @@ export class vNode {
     }
     trigger(name, ...args) {
         this._handler.trigger(name, ...args);
+    }
+    on(name, action) {
+        this._handler.on(name, action);
     }
     //#endregion
     //#region HTML INJECTION
@@ -525,8 +528,9 @@ export class vTemplate extends vNode {
         }
     }
     async buildContext() {
+        this.state = Collection.lifecycle.context_creating;
         let _update;
-        return Support.elaborateContext(this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
+        return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
             .then((output) => {
             output["__node"] = this;
             for (const attr of this.attributes) {
@@ -539,21 +543,27 @@ export class vTemplate extends vNode {
                                 //parent.context ? 
                                 return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
                             }
-                            return null;
+                            return Support.getValue(_target, _vault_key + "." + _key);
                         },
                         set: (_target, _key, newvalue) => {
                             if (attr.dynamic && attr.ref != null) {
-                                //parent.context ?
-                                Support.setValue(this.context, attr.ref, newvalue);
+                                if (Reflect.get(this.context, attr.ref) !== newvalue)
+                                    Support.setValue(this.context, attr.ref, newvalue);
+                            }
+                            else {
+                                if (Reflect.get(_target, _key) !== newvalue)
+                                    Support.setValue(_target, _vault_key + "." + _key, newvalue);
                             }
                         }
                     };
+                    //output[attr.prop] = attr.ref;
                     ref(output, attr.prop, attr.ref, _options);
                     if (attr.name && this.reference.length > 0)
                         this.reference[0].removeAttribute(attr.name);
                 }
             }
-            return output;
+            this.state = Collection.lifecycle.context_created;
+            return react(output, { handler: this._handler });
         });
     }
     /**Elaborate template's document fragment */
@@ -601,10 +611,8 @@ export class vTemplate extends vNode {
                     }
                 }
             }
-            else {
-                while (_content.childNodes.length) {
-                    this.incubator.firstChild?.appendChild(_content.childNodes[0]);
-                }
+            while (_content.childNodes.length) {
+                this.incubator.firstChild?.appendChild(_content.childNodes[0]);
             }
             //Copying all extra custom tag's attributes on first render child node if it is a Node Element
             if (this.incubator.firstChild?.nodeType == Node.ELEMENT_NODE) {
@@ -624,6 +632,7 @@ export class vTemplate extends vNode {
     elaborateChildren() {
         super.elaborateChildren();
         this.buildContext().then((context) => {
+            this._handler.setContext(context);
             // this._handler.trigger(Collection.node_event.dataset, this.context); obsolete?
             //exclude for because of auto elaboration of command
             if (!this._commands.find((c) => c instanceof cFor)) {

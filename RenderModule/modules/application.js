@@ -1,55 +1,47 @@
 import { vNode } from "./virtualizer.js";
 import EventHandler from "./events.js";
-import { View, Support } from "./library.js";
+import { Support } from "./library.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
+import { react, valueIsNotReactive } from "./reactive.js";
 class Application {
     name = "";
     context = {};
     vdom = undefined;
-    settings = {
-        debug: false,
-        debug_mode: Collection.debug_mode.all,
-        darkmode: false
-    };
+    settings = {};
     handler = new EventHandler();
     _state = Collection.lifecycle.initialized;
     get state() { return this._state; }
     set state(value) {
         this._state = value;
-        this.handler.trigger(Collection.application_event.progress, value);
+        this.handler.trigger(Collection.application_event.progress, this.current_state);
     }
-    reactivity = {
+    get current_state() { return Collection.lifecycle[this.state]; }
+    _reactivity = {
         handler: this.handler
     };
+    get reactivity() { return this._reactivity; }
     constructor(id) {
         this.state = Collection.lifecycle.creating;
         this.defaultEvents();
         this.name = id;
+        this.virtualizeDom();
         this.state = Collection.lifecycle.created;
     }
     /**Build the application */
     async build(options) {
         try {
             this.state = Collection.lifecycle.setup;
-            //display loading screen
             if (options.settings)
                 this.settings = options.settings;
             this.applySettings();
             this.setupEvents(options.events);
-            this.virtualizeDom();
-            this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed).then((app) => {
-                if (app.vdom) {
-                    app.handler.trigger(Collection.application_event.render, this);
-                    app.vdom?.elaborate(this.context); //render virtual document
-                }
-                //remove loading screen
-                this.state = Collection.lifecycle.mounted;
-            });
+            return this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
+            return new Promise(() => { return ex; });
         }
     }
     virtualizeDom() {
@@ -64,21 +56,63 @@ class Application {
             this.state = Collection.lifecycle.error;
         }
     }
+    elaborate() {
+        try {
+            this.state = Collection.lifecycle.mounting;
+            this.vdom?.elaborate(this.context);
+            this.state = Collection.lifecycle.mounted;
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+            this.state = Collection.lifecycle.error;
+        }
+        finally {
+            this.handler.trigger(Collection.application_event.render, this);
+        }
+    }
+    update() {
+        try {
+            this.state = Collection.lifecycle.updating;
+            this.vdom?.update();
+            this.state = Collection.lifecycle.updated;
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+            this.state = Collection.lifecycle.error;
+        }
+        finally {
+            this.handler.trigger(Collection.application_event.render, this);
+        }
+    }
+    //#region SETTINGS
     applySettings() {
         if (this.settings.interface?.palette) {
             for (const c of this.settings.interface?.palette) {
                 updateGlobalStyle(c.name, c.color);
             }
         }
+        switch (this.settings.interface?.animation) {
+            case "slower":
+                document.documentElement.style.setProperty(`--global-animation`, "5s");
+                break;
+            case "slow":
+                document.documentElement.style.setProperty(`--global-animation`, "4s");
+                break;
+            case "fast":
+                document.documentElement.style.setProperty(`--global-animation`, "3s");
+                break;
+            case "faster":
+                document.documentElement.style.setProperty(`--global-animation`, "1s");
+                break;
+            case "unset":
+                document.documentElement.style.setProperty(`--global-animation`, "0s");
+                break;
+        }
         if (this.settings.interface?.radius)
             document.documentElement.style.setProperty(`--global-radius`, this.settings.interface.radius);
-        if (this.settings.interface?.padding)
-            document.documentElement.style.setProperty(`--global-padding`, this.settings.interface.padding);
-        if (this.settings.interface?.margin)
-            document.documentElement.style.setProperty(`--global-margin`, this.settings.interface.margin);
-        if (this.settings.interface?.timer)
-            document.documentElement.style.setProperty(`--global-timer`, this.settings.interface.timer);
-        if (this.settings.interface?.timer)
+        if (this.settings.interface?.animation)
+            document.documentElement.style.setProperty(`--global-animation`, this.settings.interface.animation);
+        if (this.settings.interface?.font)
             document.documentElement.style.setProperty(`--global-font`, this.settings.interface.font);
         function updateGlobalStyle(name, hex) {
             var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -122,16 +156,25 @@ class Application {
             }
             document.documentElement.style.setProperty(`--${name}-a`, hex == "" || hex == "transparent" ? "0" : "1");
         }
+        document.body.setAttribute("theme", this.settings.interface?.darkmode ? "dark" : "");
     }
+    updateSettings(settings) {
+        if (settings.interface)
+            this.settings.interface = settings.interface;
+        this.applySettings();
+    }
+    //#endregion
     dismiss() {
         this.state = Collection.lifecycle.unmounting;
         this.state = Collection.lifecycle.unmounted;
     }
     //#region DATA
     async buildContext(dataset, actions, getters) {
-        if (dataset.darkmode == null)
-            dataset.darkmode = function () { View.darkmode(); };
-        return Support.elaborateContext(dataset, this.reactivity, actions, getters).then((output) => {
+        // if (dataset.darkmode == null) dataset.darkmode = function () { View.darkmode(); }
+        return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
+            output["__node"] = this.vdom;
+            if (valueIsNotReactive(output))
+                output = react(output, this.reactivity);
             this.context = output;
             return this;
         });
@@ -170,8 +213,9 @@ class Application {
     }
     setupEvents(events) {
         if (events) {
+            let _me = this;
             for (let evt of events) {
-                this.handler.on(evt.name, async function () { return evt.action(); });
+                this.handler.on(evt.name, function (...args) { return evt.action.call(_me.context, ...args); });
             }
         }
     }

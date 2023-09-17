@@ -1,9 +1,11 @@
 import "./modules/global.js";
+import "./components/DefaultComponents.js";
 import EventHandler from "./modules/events.js";
 import { ApplicationBuilder } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";
 import { Application } from "./modules/application.js";
 import log from "./modules/console.js";
+import { setupComponent, styleComponent } from "./modules/templates.js";
 /**Lampredotto framework */
 export default class RenderEngine {
     static _instance;
@@ -28,16 +30,22 @@ export default class RenderEngine {
     }
     setupEvents() {
         this.handler.on(Collection.lifecycle.creating.toString(), async () => {
-            console.clear();
+            //console.clear();
             log("Building API...");
         });
         this.handler.on(Collection.lifecycle.created.toString(), async () => {
-            console.clear();
+            //console.clear();
             log("API are ready to use");
         });
     }
     /**Start new application */
     start(id) {
         return new ApplicationBuilder(new Application(id));
+    }
+}
+export function defineComponent(template, style) {
+    setupComponent(template.tag, template.code, template.options);
+    if (style) {
+        styleComponent(style);
     }
 }

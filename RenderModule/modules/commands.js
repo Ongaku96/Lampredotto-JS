@@ -362,9 +362,11 @@ class cModel extends Command {
                                 }
                                 break;
                             default:
-                                let _val = Number(_new_value);
-                                if (!Number.isNaN(_val))
-                                    _new_value = _val;
+                                if (_new_value) {
+                                    let _val = Number(_new_value);
+                                    if (!Number.isNaN(_val))
+                                        _new_value = _val;
+                                }
                                 Support.setValue(input.context, this.reference, _new_value);
                                 break;
                         }
@@ -406,8 +408,8 @@ class cFor extends Command {
         try {
             let _me = this;
             let _data = this.sort(Support.getValue(node.context, this.reference), node); //getting data
-            _data = _data.filter((e) => this.filter(e, _data.indexOf(e)));
             if (_data != null) {
+                _data = _data.filter((e) => this.filter(e, _data.indexOf(e)));
                 if (_data && Array.isArray(_data)) {
                     node.placeFlag((node) => {
                         oldREnderingMethod();
@@ -595,10 +597,17 @@ class cOn extends Command {
         try {
             let _me = this;
             if (!this.setted && node.reference.length) {
-                node.reference[0].addEventListener(this.event.name, function (evt) {
-                    _me._handler.trigger(Collection.node_event.render, _me.event.name);
-                    return _me.event.action(evt, node.context);
-                });
+                if (Support.isNativeEvent(this.event.name)) {
+                    node.reference[0].addEventListener(this.event.name, function (evt) {
+                        return _me.event.action(evt, node.context);
+                    });
+                }
+                else {
+                    node.on(this.event.name, (evt) => {
+                        this.event.action(evt, node.context);
+                    });
+                }
+                _me._handler.trigger(Collection.node_event.render, _me.event.name);
                 this.setted = true;
             }
         }

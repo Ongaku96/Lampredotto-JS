@@ -1,7 +1,9 @@
 import { Support } from "./library.js";
 import { Collection } from "./enumerators.js";
-import log from "./console.js";
+import { vNode } from "./virtualizer.js";
 export const _vault_key = "__vault";
+export const _proxy_key = "__proxy";
+/**Keep simple variables reactive to changes in order to trigger interface update */
 export function ref(target, key, value = null, options) {
     if (target[_vault_key] == null)
         target[_vault_key] = {};
@@ -24,62 +26,64 @@ export function ref(target, key, value = null, options) {
         }
     });
 }
+/**Keep objects reactive to change in order to trigger interface update */
 export function react(obj, options) {
-    return new Proxy(obj, {
-        get(target, key) {
-            if (typeof target[key] == "object")
-                return react(target[key], options);
-            if (options && options.get != null)
-                return options.get(target, key, options?.node?.context);
-            else
-                return trigger(target, key, options);
-        },
-        set(target, key, value) {
-            if (options && options.set != null)
-                options.set(target, key, value);
-            else
-                track(target, key, value, options);
-            return true;
-        },
-    });
+    if (Support.isPrimitive(obj) || typeof obj == "function" || obj == null)
+        return obj;
+    if (!(_proxy_key in obj)) {
+        return new Proxy(obj, {
+            get(target, key) {
+                if (key !== _proxy_key) {
+                    if (valueIsNotReactive(target[key]))
+                        return react(target[key], options); //if value is an object it return another handlered object
+                    if (options && options.get != null) {
+                        return options.get(target, key, options?.node?.context);
+                    } //return value with the handler options instructions
+                    else {
+                        return trigger(target, key, options);
+                    } //return value by defaut mode
+                }
+                return true;
+            },
+            set(target, key, value) {
+                if (options && options.set != null)
+                    options.set(target, key, value);
+                else
+                    track(target, key, value, options);
+                return true;
+            },
+        });
+    }
+    return obj;
 }
+/**Default method to process value */
 function trigger(target, key, _options) {
     try {
-        return Support.getValue(target, key);
+        return Reflect.get(target, key);
     }
     catch (ex) {
         throw ex;
     }
 }
+/**Default method tu set value, it trigger an update event on passed handler by options */
 function track(target, key, value, options) {
-    if (Support.getValue(target, key) != value) {
-        Support.setValue(target, key, value);
+    if (Reflect.get(target, key) != value) {
+        Reflect.set(target, key, value);
         options?.handler?.trigger(Collection.application_event.update, options.update);
     }
 }
+/**Keeep an array reactive to changes in order to update interface on event. Every single iteration became reactive */
 export function ArrayProxy(array, options) {
     let _result = [];
-    for (let item of array) {
-        let _temp = {};
-        if (Support.isPrimitive(item)) {
-            ref(_temp, "value", item, options);
-            _result.push(_temp);
-        }
-        else {
-            if (Array.isArray(item)) {
-                _result.push(ArrayProxy(item));
-            }
-            else {
-                _result.push(react(item, options));
-            }
-        }
-    }
+    array.forEach((item) => { _result.push(Array.isArray(item) ? ArrayProxy(item) : react(item, options)); });
     return _result;
 }
 /**Return value of expression or property from app's dataset. Refer to app with $.*/
 export function renderBrackets(content, context, settings, event, references) {
+    let _bracket = "";
     try {
         return content.replace(Collection.regexp.brackets, (match) => {
+            _bracket = match;
             let _content = match.escapeBrackets();
             try {
                 let _elab = elaborateContent(_content, context, event, references);
@@ -95,7 +99,7 @@ export function renderBrackets(content, context, settings, event, references) {
         });
     }
     catch (ex) {
-        throw ex;
+        throw "error compiling code in brackets " + _bracket + ": " + ex;
     }
 }
 /**Elaborate dynamic content from application data */
@@ -124,8 +128,7 @@ export function elaborateContent(content, context, event, references, _return = 
         return _val;
     }
     catch (ex) {
-        log(ex, Collection.message_type.error);
-        return null;
+        throw "error compiling content {" + content + "}: " + ex;
     }
 }
 /**Replace all array references with app path */
@@ -155,4 +158,11 @@ export function runFunctionByName(script, evt, context) {
     catch (ex) {
         throw ex;
     }
+}
+/**Check if value has another level of accessibility */
+export function valueIsNotReactive(value) {
+    return value != null && //value exists
+        typeof value == "object" && //value is an Object
+        !value[_proxy_key] && //value is not a proxy Object
+        !(value instanceof vNode); //value is not a virtualized Node Object
 }

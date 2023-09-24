@@ -6,9 +6,9 @@ import EventHandler from "./events.js";
 import log from "./console.js";
 export class vNode {
     /**Return new instance of virtual node */
-    static newInstance(reference, parent, settings) {
+    static newInstance(reference, parent) {
         let _component = globalThis.my_components?.find(c => c.name.toUpperCase() == reference.nodeName.toUpperCase());
-        return _component != null ? new vTemplate(reference, _component.template, _component.options, parent) : new vNode(reference, parent, settings);
+        return _component != null ? new vTemplate(reference, _component.template, _component.options, parent) : new vNode(reference, parent);
     }
     //#region PUBLIC
     /**virtual node identifier */
@@ -68,16 +68,12 @@ export class vNode {
     /**Get this application root virtual node */
     get application() { return this.parent ? this.parent.application : this; }
     //#endregion
-    constructor(original, parent, settings) {
+    constructor(original, parent) {
         this.id = Support.uniqueID();
         this.state = Collection.lifecycle.creating;
         this.backup = original.cloneNode(true);
         this.static = false;
         this._parent = parent;
-        if (parent != null)
-            this.settings = parent.settings;
-        if (settings != null)
-            this.mergeSettings(settings);
         this.create(original);
     }
     /**Initialization of virtual node
@@ -278,7 +274,8 @@ export class vNode {
         try {
             if (this.reference[index] && this.reference[index].nodeType == Node.ELEMENT_NODE) {
                 this.reference[index].append(node);
-                let _node = vNode.newInstance(node, this, this.settings);
+                let _node = vNode.newInstance(node, this);
+                _node.updateSettings(this.settings);
                 _node.setup();
                 this.setupChildEvents(_node);
                 this._children.push(_node);
@@ -297,7 +294,8 @@ export class vNode {
         try {
             if (this.reference[index] && this.reference[index].nodeType == Node.ELEMENT_NODE) {
                 this.reference[index].prepend(node);
-                let _node = vNode.newInstance(node, this, this.settings);
+                let _node = vNode.newInstance(node, this);
+                _node.updateSettings(this.settings);
                 _node.setup();
                 this.setupChildEvents(_node);
                 this._children = this._children.prepend(_node);
@@ -329,7 +327,8 @@ export class vNode {
     /**Replace first reference DOM element with another */
     replaceWith(node) {
         try {
-            let _virtual = vNode.newInstance(node, this, this.settings);
+            let _virtual = vNode.newInstance(node, this);
+            _virtual.updateSettings(this.settings);
             _virtual.setup();
             this.setupChildEvents(_virtual);
             let _parent = this.reference[0]?.parentNode;
@@ -410,7 +409,8 @@ export class vNode {
             let _children = element.childNodes;
             for (const child of Array.from(_children)) {
                 if (this.checkChild(child)) {
-                    let _node = vNode.newInstance(child, this, this.settings);
+                    let _node = vNode.newInstance(child, this);
+                    _node.updateSettings(this.settings);
                     this.setupChildEvents(_node);
                     this.children.push(_node);
                 }
@@ -443,6 +443,14 @@ export class vNode {
             }
         });
     }
+    //#endregion
+    /**Update node settings and children settings in cascade*/
+    updateSettings(settings) {
+        this.mergeSettings(settings);
+        for (const child of this.children) {
+            child.updateSettings(settings);
+        }
+    }
 }
 /**virtual node for templates */
 export class vTemplate extends vNode {
@@ -452,7 +460,9 @@ export class vTemplate extends vNode {
     content_tags = [];
     dataset = {};
     constructor(reference, template, options, parent) {
-        super(reference, parent, options?.settings);
+        super(reference, parent);
+        if (options && "settings" in options)
+            this.updateSettings(options?.settings);
         this.createTemplate(reference, template, options);
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
@@ -575,7 +585,8 @@ export class vTemplate extends vNode {
         let _children = [];
         for (const child of Array.from(render.childNodes)) {
             if (this.checkChild(child)) {
-                let _node = vNode.newInstance(child, this, settings);
+                let _node = vNode.newInstance(child, this);
+                _node.updateSettings(settings);
                 this.setupChildEvents(_node);
                 _children.push(_node);
             }

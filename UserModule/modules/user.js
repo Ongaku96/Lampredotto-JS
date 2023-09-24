@@ -21,7 +21,7 @@ export class User {
     constructor(id, data, settings) {
         this._id = id;
         this._data = data;
-        this._settings = settings;
+        this._settings = settings || {};
     }
     save() {
         try {

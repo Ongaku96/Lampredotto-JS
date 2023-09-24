@@ -35,6 +35,7 @@ class Application {
             if (options.settings)
                 this.settings = options.settings;
             this.applySettings();
+            this.vdom;
             this.setupEvents(options.events);
             return this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
         }
@@ -46,9 +47,9 @@ class Application {
     }
     virtualizeDom() {
         this.state = Collection.lifecycle.mounting;
-        let _root = document.getElementById(this.name);
-        if (_root != null) {
-            this.vdom = vNode.newInstance(_root, undefined, this.settings);
+        let _seed = document.getElementById(this.name);
+        if (_seed != null) {
+            this.vdom = vNode.newInstance(_seed, undefined);
             this.vdom.setup();
         }
         else {
@@ -157,6 +158,7 @@ class Application {
             document.documentElement.style.setProperty(`--${name}-a`, hex == "" || hex == "transparent" ? "0" : "1");
         }
         document.body.setAttribute("theme", this.settings.interface?.darkmode ? "dark" : "");
+        this.vdom?.updateSettings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters });
     }
     updateSettings(settings) {
         if (settings.interface)
@@ -173,6 +175,7 @@ class Application {
         // if (dataset.darkmode == null) dataset.darkmode = function () { View.darkmode(); }
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
             output["__node"] = this.vdom;
+            output["__app"] = this;
             if (valueIsNotReactive(output))
                 output = react(output, this.reactivity);
             this.context = output;

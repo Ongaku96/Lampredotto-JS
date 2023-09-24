@@ -23,7 +23,7 @@ class UserHandler {
         try {
             this.refreshUser(id, data);
             if (!this.logged) {
-                this._logged_user = new User(id, data, settings);
+                this._logged_user = new User(id, data, settings || {});
                 this._logged_user?.save();
             }
             this.setSessionUser();

@@ -204,3 +204,8 @@ export const command_matches = [
     { key: cBind.regexp, value: new cBind() },
 ];
 //#endregion
+export var GlobalKeys;
+(function (GlobalKeys) {
+    GlobalKeys.application = "__app";
+    GlobalKeys.node = "__node";
+})(GlobalKeys || (GlobalKeys = {}));

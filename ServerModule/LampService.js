@@ -1,3 +1,5 @@
+
+/**Server connection services */
 export default class Service {
     _abort_controller;
     constructor(abort) {

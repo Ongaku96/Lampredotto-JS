@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 export class AbortHandler {
     controller;
     rule;
@@ -14,6 +15,9 @@ export class AbortHandler {
         return new AbortHandler(this.rule);
     }
 }
+=======
+/**Server connection services */
+>>>>>>> Stashed changes
 export default class Service {
     _abort_controller;
     constructor(abort) {

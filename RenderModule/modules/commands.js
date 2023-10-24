@@ -409,14 +409,25 @@ class cFor extends Command {
             let _me = this;
             let _data = this.sort(Support.getValue(node.context, this.reference), node); //getting data
             if (_data != null) {
-                _data = _data.filter((e) => this.filter(e, _data.indexOf(e)));
+                _data = _data.filter((e) => {
+                    let index = () => {
+                        let i = 0;
+                        for (const item of _data) {
+                            if (JSON.stringify(item) === JSON.stringify(e))
+                                return i;
+                            i++;
+                        }
+                        return -1;
+                    };
+                    return this.filter(node.context, index());
+                });
                 if (_data && Array.isArray(_data)) {
                     node.placeFlag((node) => {
-                        oldREnderingMethod();
+                        oldRenderingMethod();
                         // newRenderingMethod();
                         this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
                         return this._backup.length > 0;
-                        function oldREnderingMethod() {
+                        function oldRenderingMethod() {
                             node.incubator.textContent = ""; //reset node incubator
                             for (let i = 0; i < _data.length; i++) {
                                 //Duplicate parent context for iteration
@@ -435,7 +446,7 @@ class cFor extends Command {
                         //     for (let i = 0; i < _data.length; i++) {
                         //         let _rendered = _me._backup.find(e => e.context[_me.alias] == _data[i]);
                         //         //filter item based on filter settings
-                        //         if (_me.filter(_data[i], i)) {
+                        //         if (_me.filter(node.context, i)) {
                         //             if (_rendered) {
                         //                 _rendered.update();
                         //             } else {
@@ -565,13 +576,13 @@ class cFor extends Command {
             throw ex;
         }
     }
-    filter(item, index) {
+    filter(context, index) {
         try {
-            if (this._filter) {
+            if (this._filter && index >= 0) {
                 let _function = "return " + this._filter
                     .replace(new RegExp(cFor.index, "g"), index.toString())
-                    .replace(new RegExp(this.alias, "g"), "this.iter");
-                return Support.runFunctionByString(_function, { iter: item });
+                    .replace(new RegExp(this.alias, "g"), `$.${this.reference}[${index}]`);
+                return Support.runFunctionByString(_function, context);
             }
             return true;
         }

@@ -41,8 +41,9 @@ export class vNode {
     /**State of node's elaboration */
     get state() { return this._state; }
     get current_state() { return Collection.lifecycle[this.state]; }
+    get isElement() { return this.backup.nodeType == Node.ELEMENT_NODE; }
     /**Original element in case node is HTML Element */
-    get element() { return this.backup.nodeType == Node.ELEMENT_NODE ? this.backup : null; }
+    get element() { return this.isElement ? this.backup : null; }
     /**Node's children */
     get children() { return this._children; }
     /**Reference for elaboration space */
@@ -191,7 +192,24 @@ export class vNode {
                 case Node.TEXT_NODE:
                     if (this.backup.nodeValue) {
                         let _debug = renderBrackets(this.backup.nodeValue, this.context, this.settings);
-                        this.reference[0].nodeValue = _debug;
+                        this.incubator.textContent = "";
+                        let content = [];
+                        let temp_node = Support.templateFromString(_debug).firstChild;
+                        do {
+                            if (temp_node) {
+                                let virtual = vNode.newInstance(temp_node, this);
+                                virtual.setup();
+                                virtual.elaborate(this.context);
+                                content.push(virtual);
+                            }
+                            temp_node = temp_node?.nextSibling;
+                        } while (temp_node != null);
+                        for (const item of content) {
+                            for (const child of item.reference) {
+                                this.incubator.appendChild(child);
+                            }
+                        }
+                        this.replaceNodes();
                         if (Support.debug(this.settings, Collection.debug_mode.command))
                             log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                     }
@@ -268,7 +286,7 @@ export class vNode {
         this._handler.on(name, action);
     }
     //#endregion
-    //#region HTML INJECTION
+    //#region HTML
     /**Inject element as last children */
     append(node, index = 0) {
         try {
@@ -375,6 +393,9 @@ export class vNode {
         if (elaborate(this))
             this.flag.remove();
     }
+    hasAttribute(attribute) {
+        return this.isElement ? this.element?.hasAttribute(attribute) : false;
+    }
     //#endregion
     //#region CHILDREN
     /**Remove children based on filter, if filter is empty it remove all children */
@@ -457,7 +478,7 @@ export class vTemplate extends vNode {
     template = "";
     vtemplate_children = [];
     attributes = [];
-    content_tags = [];
+    slots = [];
     dataset = {};
     constructor(reference, template, options, parent) {
         super(reference, parent);
@@ -500,8 +521,8 @@ export class vTemplate extends vNode {
                 this._handler.on(event.name, event.action);
             }
         }
-        if (options?.content)
-            this.content_tags = options.content;
+        if (options?.slots)
+            this.slots = options.slots;
         this._incubator = this.getRender();
         if (!this.commandDriven)
             this.vtemplate_children = this.mapTemplatechildren(this.incubator, this.settings);
@@ -612,12 +633,12 @@ export class vTemplate extends vNode {
                 _content.append(_reference.childNodes[0]);
             }
             //replace in render all 'out of template's context' children with tag
-            if (this.content_tags.length) {
-                for (let tag of this.content_tags) {
-                    let _element = _content.querySelector("[content='" + tag + "']");
-                    let _insider = this.incubator.getElementById(tag);
+            if (this.slots.length) {
+                for (let tag of this.slots) {
+                    let _element = _content.querySelector("[slot='" + tag + "']");
+                    let _insider = this.incubator.querySelector("slot[name='" + tag + "']");
                     if (_element && _insider) {
-                        _element.removeAttribute("content");
+                        _element.removeAttribute("slot");
                         _insider.parentNode?.replaceChild(_element, _insider);
                     }
                 }

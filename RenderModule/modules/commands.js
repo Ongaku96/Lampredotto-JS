@@ -288,10 +288,19 @@ class cModel extends Command {
                     default:
                         _debug = this.readValue(node.context, node.settings);
                         if (_debug) {
+                            let content = [];
                             let _element = Support.templateFromString(_debug.toString())?.firstChild;
+                            do {
+                                if (_element) {
+                                    content.push(_element);
+                                }
+                                _element = _element.nextSibling;
+                            } while (_element != null);
                             node.removeChildren();
-                            if (_element)
-                                node.append(_element);
+                            for (const child of content) {
+                                node.append(child);
+                            }
+                            ;
                         }
                         break;
                 }
@@ -361,6 +370,17 @@ class cModel extends Command {
                                     Support.setValue(input.context, this.reference, _element.checked);
                                 }
                                 break;
+                            case "textbox":
+                            case "text":
+                                Support.setValue(input.context, this.reference, _new_value ? _new_value.escapeHTML() : _new_value);
+                                break;
+                            case "date":
+                            case "datetime-local":
+                                Support.setValue(input.context, this.reference, _new_value ? Date.parse(_new_value) : _new_value);
+                                break;
+                            case "number":
+                                Support.setValue(input.context, this.reference, _new_value ? Number(_new_value) : _new_value);
+                                break;
                             default:
                                 if (_new_value) {
                                     let _val = Number(_new_value);
@@ -409,14 +429,25 @@ class cFor extends Command {
             let _me = this;
             let _data = this.sort(Support.getValue(node.context, this.reference), node); //getting data
             if (_data != null) {
-                _data = _data.filter((e) => this.filter(e, _data.indexOf(e)));
+                _data = _data.filter((e) => {
+                    let index = () => {
+                        let i = 0;
+                        for (const item of _data) {
+                            if (JSON.stringify(item) === JSON.stringify(e))
+                                return i;
+                            i++;
+                        }
+                        return -1;
+                    };
+                    return this.filter(node.context, index());
+                });
                 if (_data && Array.isArray(_data)) {
                     node.placeFlag((node) => {
-                        oldREnderingMethod();
+                        oldRenderingMethod();
                         // newRenderingMethod();
                         this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
                         return this._backup.length > 0;
-                        function oldREnderingMethod() {
+                        function oldRenderingMethod() {
                             node.incubator.textContent = ""; //reset node incubator
                             for (let i = 0; i < _data.length; i++) {
                                 //Duplicate parent context for iteration
@@ -435,7 +466,7 @@ class cFor extends Command {
                         //     for (let i = 0; i < _data.length; i++) {
                         //         let _rendered = _me._backup.find(e => e.context[_me.alias] == _data[i]);
                         //         //filter item based on filter settings
-                        //         if (_me.filter(_data[i], i)) {
+                        //         if (_me.filter(node.context, i)) {
                         //             if (_rendered) {
                         //                 _rendered.update();
                         //             } else {
@@ -565,13 +596,13 @@ class cFor extends Command {
             throw ex;
         }
     }
-    filter(item, index) {
+    filter(context, index) {
         try {
-            if (this._filter) {
+            if (this._filter && index >= 0) {
                 let _function = "return " + this._filter
                     .replace(new RegExp(cFor.index, "g"), index.toString())
-                    .replace(new RegExp(this.alias, "g"), "this.iter");
-                return Support.runFunctionByString(_function, { iter: item });
+                    .replace(new RegExp(this.alias, "g"), `$.${this.reference}[${index}]`);
+                return Support.runFunctionByString(_function, context);
             }
             return true;
         }

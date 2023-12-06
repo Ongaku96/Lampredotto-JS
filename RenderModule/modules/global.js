@@ -129,6 +129,14 @@ String.prototype.format = function (...args) {
 String.prototype.escapeRegExp = function () { return this.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); };
 /**escape { } characters from a string */
 String.prototype.escapeBrackets = function () { return this.replace(/\{\{|\}\}/gm, "").trim(); };
+/**escape { } characters from a string */
+String.prototype.escapeHTML = function () {
+    return this.replace(/&/g, "&amp")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
 /**Slice array */
 Array.prototype.subarray = function (start, count = 0) {
     if (!count)

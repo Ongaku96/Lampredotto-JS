@@ -1,9 +1,10 @@
 import { Support } from "./library.js";
-import { Collection, command_matches } from "./enumerators.js";
+import { Collection, GlobalKeys, command_matches } from "./enumerators.js";
 import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
 import log from "./console.js";
+/**Virtualization of DOM node */
 export class vNode {
     /**Return new instance of virtual node */
     static newInstance(reference, parent) {
@@ -77,6 +78,7 @@ export class vNode {
         this._parent = parent;
         this.create(original);
     }
+    //#region MANAGE
     /**Initialization of virtual node
      *  - store commands
      *  - define staticness
@@ -139,7 +141,7 @@ export class vNode {
         try {
             this.context = context ?
                 context : (this.parent ?
-                this.parent.context : {});
+                    this.parent.context : {});
             this._handler.setContext(this.context);
             this.render().then(() => {
                 this.state = Collection.lifecycle.mounted;
@@ -152,7 +154,7 @@ export class vNode {
             this.state = Collection.lifecycle.error;
         }
     }
-    /**Update node and node's child rendering */
+    /**Update node and node's children rendering */
     update() {
         this.state = Collection.lifecycle.updating;
         try {
@@ -174,13 +176,17 @@ export class vNode {
             switch (this.nodeType) {
                 case Node.ELEMENT_NODE:
                     if (this._commands.find(c => c instanceof cIf) != null) {
-                        this._commands.forEach(c => { if (c instanceof cIf)
-                            c.render(this); });
+                        this._commands.forEach(c => {
+                            if (c instanceof cIf)
+                                c.render(this);
+                        });
                     }
                     else {
                         if (this._commands.find(c => c instanceof cFor) != null) {
-                            this._commands.forEach(c => { if (c instanceof cFor)
-                                c.render(this); });
+                            this._commands.forEach(c => {
+                                if (c instanceof cFor)
+                                    c.render(this);
+                            });
                         }
                         else {
                             for (let comm of this._commands) {
@@ -217,6 +223,7 @@ export class vNode {
             }
         }
     }
+    //#endregion
     //#region ELABORATION
     /**Conteol presence of commands attributes and store them in commands archive */
     checkCommands(element) {
@@ -465,7 +472,7 @@ export class vNode {
         });
     }
     //#endregion
-    /**Update node settings and children settings in cascade*/
+    /**Update node settings and children settings*/
     updateSettings(settings) {
         this.mergeSettings(settings);
         for (const child of this.children) {
@@ -473,13 +480,13 @@ export class vNode {
         }
     }
 }
-/**virtual node for templates */
+/**vTemplate is the vDOM rappresentation of Components, it is an extension of vNode but with some semi-independant application features*/
 export class vTemplate extends vNode {
-    template = "";
-    vtemplate_children = [];
-    attributes = [];
-    slots = [];
-    dataset = {};
+    template = ""; // component's html code
+    vtemplate_children = []; //component's vDOM children only
+    attributes = []; //component's paramters
+    slots = []; //component's outer references ids
+    dataset = {}; //base dataset for context
     constructor(reference, template, options, parent) {
         super(reference, parent);
         if (options && "settings" in options)
@@ -487,45 +494,55 @@ export class vTemplate extends vNode {
         this.createTemplate(reference, template, options);
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
+    /**Prepare template data for processing */
     createTemplate(original, template, options) {
+        const me = this;
         this.template = template;
         this.dataset = {
             data: options?.dataset,
             actions: options?.actions,
             computed: options?.computed
         };
-        if (options?.properties) {
-            let _attributes = original.getAttributeNames();
-            for (const attr of options.properties) {
-                let _attribute = _attributes.find(a => a.includes(attr));
-                if (_attribute != null) {
-                    this.attributes.push({
-                        name: _attribute,
-                        prop: attr,
-                        ref: this.element?.getAttribute(_attribute),
-                        dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
-                    });
-                }
-                else {
-                    this.attributes.push({
-                        name: "",
-                        prop: attr,
-                        ref: null,
-                        dynamic: false
-                    });
-                }
-            }
-        }
-        if (options?.events) {
-            for (let event of options.events) {
-                this._handler.on(event.name, event.action);
-            }
-        }
+        setupAttributes();
+        setupEvents();
         if (options?.slots)
             this.slots = options.slots;
         this._incubator = this.getRender();
         if (!this.commandDriven)
             this.vtemplate_children = this.mapTemplatechildren(this.incubator, this.settings);
+        /**Setup events triggers */
+        function setupEvents() {
+            if (options?.events) {
+                for (let event of options.events) {
+                    me._handler.on(event.name, event.action);
+                }
+            }
+        }
+        /**Setup list of attributes to be assigned after in context elaboration or to be attachet to first element on the elaborated node replacement*/
+        function setupAttributes() {
+            if (options?.properties) {
+                let _attributes = original.getAttributeNames();
+                for (const attr of options.properties) {
+                    let _attribute = _attributes.find(a => a.includes(attr));
+                    if (_attribute != null) {
+                        me.attributes.push({
+                            name: _attribute,
+                            prop: attr,
+                            ref: me.element?.getAttribute(_attribute),
+                            dynamic: me.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
+                        });
+                    }
+                    else {
+                        me.attributes.push({
+                            name: "",
+                            prop: attr,
+                            ref: null,
+                            dynamic: false
+                        });
+                    }
+                }
+            }
+        }
     }
     setup() {
         try {
@@ -558,44 +575,44 @@ export class vTemplate extends vNode {
             this.state = Collection.lifecycle.error;
         }
     }
+    /**Like the application's relative method, it defines a unique data context,
+     * but the passed variable's proxy is linked to the relative in the parent context instead of updating all vdom. */
     async buildContext() {
-        this.state = Collection.lifecycle.context_creating;
         let _update;
         return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
             .then((output) => {
-            output["__node"] = this;
-            for (const attr of this.attributes) {
-                if (!(attr.prop in output && attr.name == "")) {
-                    let _options = {
-                        handler: this._handler,
-                        node: this,
-                        get: (_target, _key, _context) => {
-                            if (attr.ref) {
-                                //parent.context ? 
-                                return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
+                output[GlobalKeys.node] = this;
+                output[GlobalKeys.application] = this.parent?.context.__app;
+                for (const attr of this.attributes) {
+                    if (!(attr.prop in output && attr.name == "")) {
+                        let _options = {
+                            handler: this._handler,
+                            node: this,
+                            get: (_target, _key, _context) => {
+                                if (attr.ref) {
+                                    //parent.context ? 
+                                    return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
+                                }
+                                return Support.getValue(_target, _vault_key + "." + _key);
+                            },
+                            set: (_target, _key, newvalue) => {
+                                if (attr.dynamic && attr.ref != null) {
+                                    if (Reflect.get(this.context, attr.ref) !== newvalue)
+                                        Support.setValue(this.context, attr.ref, newvalue);
+                                }
+                                else {
+                                    if (Reflect.get(_target, _key) !== newvalue)
+                                        Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                                }
                             }
-                            return Support.getValue(_target, _vault_key + "." + _key);
-                        },
-                        set: (_target, _key, newvalue) => {
-                            if (attr.dynamic && attr.ref != null) {
-                                if (Reflect.get(this.context, attr.ref) !== newvalue)
-                                    Support.setValue(this.context, attr.ref, newvalue);
-                            }
-                            else {
-                                if (Reflect.get(_target, _key) !== newvalue)
-                                    Support.setValue(_target, _vault_key + "." + _key, newvalue);
-                            }
-                        }
-                    };
-                    //output[attr.prop] = attr.ref;
-                    ref(output, attr.prop, attr.ref, _options);
-                    if (attr.name && this.reference.length > 0)
-                        this.reference[0].removeAttribute(attr.name);
+                        };
+                        ref(output, attr.prop, attr.ref, _options);
+                        if (attr.name && this.reference.length > 0)
+                            this.reference[0].removeAttribute(attr.name);
+                    }
                 }
-            }
-            this.state = Collection.lifecycle.context_created;
-            return react(output, { handler: this._handler });
-        });
+                return react(output, { handler: this._handler });
+            });
     }
     /**Elaborate template's document fragment */
     getRender() {
@@ -661,11 +678,13 @@ export class vTemplate extends vNode {
             log(ex, Collection.message_type.error);
         }
     }
+    /**Processes the children of the component using its personal context
+     * and injected children with the inherited context  */
     elaborateChildren() {
         super.elaborateChildren();
         this.buildContext().then((context) => {
-            this._handler.setContext(context);
-            // this._handler.trigger(Collection.node_event.dataset, this.context); obsolete?
+            this._handler.setContext(context); //Update change event's context reference
+            this._handler.trigger(Collection.node_event.dataset, context); //trigger event for template context
             //exclude for because of auto elaboration of command
             if (!this._commands.find((c) => c instanceof cFor)) {
                 for (const child of this.vtemplate_children) {

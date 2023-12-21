@@ -1,4 +1,4 @@
-export default class Connection {
+export default class Storage {
     address;
     controller;
     constructor(path) {
@@ -6,22 +6,39 @@ export default class Connection {
         this.controller = new AbortController();
     }
     save(data, filename) {
-        let _url = this.address;
-        if (filename != null)
-            _url += filename;
-        return fetch(_url, {
-            method: "POST",
-            body: data
-        });
+        try {
+            let _url = this.address;
+            if (filename != null)
+                _url += filename;
+            return fetch(_url, {
+                method: "POST",
+                body: data
+            });
+        }
+        catch (ex) {
+            console.error("LAMP STORAGE: " + ex);
+            return new Promise(() => { return Response.error(); });
+        }
     }
     read(filename) {
-        let _url = this.address;
-        if (filename != null)
-            _url += filename;
-        return fetch(_url);
+        try {
+            let _url = this.address;
+            if (filename != null)
+                _url += filename;
+            return fetch(_url);
+        }
+        catch (ex) {
+            console.error("LAMP STORAGE: " + ex);
+            return new Promise(() => { return Response.error(); });
+        }
     }
     abort() {
-        this.controller.abort();
-        console.log("Connection to " + this.address + " aborted");
+        try {
+            this.controller.abort();
+            console.log("Connection to " + this.address + " aborted");
+        }
+        catch (ex) {
+            console.error("LAMP STORAGE: " + ex);
+        }
     }
 }

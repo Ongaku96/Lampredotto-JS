@@ -1,5 +1,5 @@
 import { User } from "./modules/user.js";
-class UserHandler {
+export default class UserHandler {
     session_key = "active_user";
     static _default = null;
     static get instance() {
@@ -116,4 +116,3 @@ class UserHandler {
         sessionStorage.removeItem(this.session_key);
     }
 }
-export default UserHandler;

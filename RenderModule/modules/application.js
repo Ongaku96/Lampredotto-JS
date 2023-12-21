@@ -1,16 +1,16 @@
 import { vNode } from "./virtualizer.js";
 import EventHandler from "./events.js";
 import { Support } from "./library.js";
-import { Collection, GlobalKeys } from "./enumerators.js";
+import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import { react, valueIsNotReactive } from "./reactive.js";
 class Application {
-    name = ""; //id of application
-    context = {}; //data context
-    vdom = undefined; //virtual DOM
-    settings = {}; //Application settings
-    handler = new EventHandler(); //events collector
-    _state = Collection.lifecycle.initialized; //application state
+    name = "";
+    context = {};
+    vdom = undefined;
+    settings = {};
+    handler = new EventHandler();
+    _state = Collection.lifecycle.initialized;
     get state() { return this._state; }
     set state(value) {
         this._state = value;
@@ -22,13 +22,12 @@ class Application {
     };
     get reactivity() { return this._reactivity; }
     constructor(id) {
-        this.defaultEvents();
         this.state = Collection.lifecycle.creating;
+        this.defaultEvents();
         this.name = id;
         this.virtualizeDom();
         this.state = Collection.lifecycle.created;
     }
-    //#region MANAGE
     /**Build the application */
     async build(options) {
         try {
@@ -36,6 +35,7 @@ class Application {
             if (options.settings)
                 this.settings = options.settings;
             this.applySettings();
+            this.vdom;
             this.setupEvents(options.events);
             return this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
         }
@@ -45,7 +45,6 @@ class Application {
             return new Promise(() => { return ex; });
         }
     }
-    /**Create a linked virtual version of HTML DOM */
     virtualizeDom() {
         this.state = Collection.lifecycle.mounting;
         let _seed = document.getElementById(this.name);
@@ -58,7 +57,6 @@ class Application {
             this.state = Collection.lifecycle.error;
         }
     }
-    /**First application's virtual DOM render*/
     elaborate() {
         try {
             this.state = Collection.lifecycle.mounting;
@@ -73,7 +71,6 @@ class Application {
             this.handler.trigger(Collection.application_event.render, this);
         }
     }
-    /**Update rendering */
     update() {
         try {
             this.state = Collection.lifecycle.updating;
@@ -88,16 +85,7 @@ class Application {
             this.handler.trigger(Collection.application_event.render, this);
         }
     }
-    /**Reset virtualization and restore original DOM
-     * -- TO BE DEVELOPED --
-    */
-    dismiss() {
-        this.state = Collection.lifecycle.unmounting;
-        this.state = Collection.lifecycle.unmounted;
-    }
-    //#endregion
     //#region SETTINGS
-    /**Setup global settings for interface and format*/
     applySettings() {
         if (this.settings.interface?.palette) {
             for (const c of this.settings.interface?.palette) {
@@ -172,20 +160,22 @@ class Application {
         document.body.setAttribute("theme", this.settings.interface?.darkmode ? "dark" : "");
         this.vdom?.updateSettings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters });
     }
-    /**Update interface settings */
     updateSettings(settings) {
         if (settings.interface)
             this.settings.interface = settings.interface;
         this.applySettings();
     }
     //#endregion
+    dismiss() {
+        this.state = Collection.lifecycle.unmounting;
+        this.state = Collection.lifecycle.unmounted;
+    }
     //#region DATA
-    /**Define unique data context based on passed parameters */
     async buildContext(dataset, actions, getters) {
         // if (dataset.darkmode == null) dataset.darkmode = function () { View.darkmode(); }
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
-            output[GlobalKeys.node] = this.vdom; //in-context virtual node reference shortcut
-            output[GlobalKeys.application] = this; //in-context application reference
+            output["__node"] = this.vdom;
+            output["__app"] = this;
             if (valueIsNotReactive(output))
                 output = react(output, this.reactivity);
             this.context = output;
@@ -194,7 +184,6 @@ class Application {
     }
     //#endregion
     //#region EVENTS
-    /**setup default events triggers */
     defaultEvents() {
         this.onProgress((state, message) => {
             if (Support.debug(this.settings, Collection.debug_mode.message))
@@ -225,7 +214,6 @@ class Application {
             this.vdom?.update();
         });
     }
-    /**Add event */
     setupEvents(events) {
         if (events) {
             let _me = this;
@@ -234,11 +222,9 @@ class Application {
             }
         }
     }
-    /**Set on state change event action*/
     onProgress(action) {
         this.handler.on(Collection.application_event.progress, async function (state) { return action(Collection.lifecycle[state]); });
     }
-    /**Set on data context change event action*/
     onChange(action) {
         this.handler.on(Collection.application_event.update, async function (state) { return action(Collection.lifecycle[state]); });
     }

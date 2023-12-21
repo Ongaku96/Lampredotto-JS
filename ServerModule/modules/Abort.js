@@ -1,5 +1,4 @@
-/**Abort connection management */
-export class ConnectionHandler {
+export default class AbortHandler {
     controller;
     rule;
     get signal() { return this.controller.signal; }
@@ -12,6 +11,6 @@ export class ConnectionHandler {
         this.rule(this.controller);
     }
     clone() {
-        return new ConnectionHandler(this.rule);
+        return new AbortHandler(this.rule);
     }
 }

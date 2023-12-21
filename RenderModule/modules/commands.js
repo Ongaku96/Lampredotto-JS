@@ -287,20 +287,20 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (_debug) {
-                            let content = [];
-                            let _element = Support.templateFromString(_debug.toString())?.firstChild;
-                            do {
-                                if (_element) {
-                                    content.push(_element);
-                                }
-                                _element = _element.nextSibling;
-                            } while (_element != null);
-                            node.removeChildren();
-                            for (const child of content) {
-                                node.append(child);
+                        if (_debug && typeof (_debug) === "string") {
+                            let temp = Support.templateFromString(_debug);
+                            let _child = temp.firstChild;
+                            if (_child) {
+                                node.removeChildren();
+                                do {
+                                    node.append(_child.cloneNode(true));
+                                    _child = _child.nextSibling;
+                                } while (_child != null);
                             }
-                            ;
+                        }
+                        else {
+                            if (node.reference.length)
+                                node.reference[0].nodeValue = _debug;
                         }
                         break;
                 }

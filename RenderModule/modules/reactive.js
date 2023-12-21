@@ -30,7 +30,7 @@ export function ref(target, key, value = null, options) {
 export function react(obj, options) {
     if (Support.isPrimitive(obj) || typeof obj == "function" || obj == null)
         return obj;
-    if (!Reflect.get(obj, _proxy_key)) {
+    if (!(_proxy_key in obj)) {
         return new Proxy(obj, {
             get(target, key) {
                 if (key !== _proxy_key) {

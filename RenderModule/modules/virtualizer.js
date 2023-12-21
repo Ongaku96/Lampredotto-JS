@@ -648,21 +648,11 @@ export class vTemplate extends vNode {
             //replace in render all 'out of template's context' children with tag
             if (this.slots.length) {
                 for (let tag of this.slots) {
-                    let _element = _content.querySelector("[slot='" + tag + "']");
+                    let _element = _content.querySelector("*[slot='" + tag + "']");
                     let _insider = this.incubator.querySelector("slot[name='" + tag + "']");
                     if (_element && _insider) {
-                        let child = _element.firstChild;
-                        let replace = child?.cloneNode(true);
-                        if (replace != null)
-                            _insider.parentNode?.replaceChild(replace, _insider);
-                        do {
-                            child = child?.nextSibling;
-                            if (child != null) {
-                                if (replace?.nodeType === Node.ELEMENT_NODE) {
-                                    replace?.after(child.cloneNode(true));
-                                }
-                            }
-                        } while (child != null);
+                        _element.removeAttribute("slot");
+                        _insider.parentNode?.replaceChild(_element, _insider);
                     }
                 }
             }

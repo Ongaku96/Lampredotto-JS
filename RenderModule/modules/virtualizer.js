@@ -101,7 +101,7 @@ export class vNode {
         }
     }
     /**Definition of node's dynamic elements like commands */
-    setup() {
+    async setup() {
         try {
             if (!this.static) {
                 this.incubator.appendChild(this.backup.cloneNode(false));
@@ -129,7 +129,7 @@ export class vNode {
         }
     }
     /**First elaboration of node, context definition and rendering  */
-    elaborate(context) {
+    async elaborate(context) {
         if (this.parent)
             this.mergeSettings(this.parent?.settings);
         if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
@@ -137,15 +137,17 @@ export class vNode {
         }
         this.state = Collection.lifecycle.mounting;
         try {
+            let processes = [];
             this.context = context ?
                 context : (this.parent ?
                 this.parent.context : {});
             this._handler.setContext(this.context);
-            this.render().then(() => {
+            processes.push(this.render().then(() => {
                 this.state = Collection.lifecycle.mounted;
-            });
-            this.elaborateChildren();
+            }));
+            processes.push(this.elaborateChildren());
             this.onInject(async (node) => { node.elaborate(); });
+            await Promise.all(processes).then(() => { this.state = Collection.lifecycle.ready; });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -153,15 +155,17 @@ export class vNode {
         }
     }
     /**Update node and node's child rendering */
-    update() {
+    async update() {
         this.state = Collection.lifecycle.updating;
+        let processes = [];
         try {
-            this.render().then(() => {
+            processes.push(this.render().then(() => {
                 this.state = Collection.lifecycle.updated;
-            });
+            }));
             for (const child of this.children) {
-                child.update();
+                processes.push(child.update());
             }
+            await Promise.all(processes).then(() => { this.state = Collection.lifecycle.ready; });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -462,7 +466,7 @@ export class vNode {
         return true;
     }
     /**Run first elaboration command to all children */
-    elaborateChildren() {
+    async elaborateChildren() {
         if (!this._commands.find((c) => c instanceof cFor)) { //exclude for because of auto elaboration of command
             for (const child of this.children) {
                 child.elaborate();
@@ -540,10 +544,10 @@ export class vTemplate extends vNode {
         if (!this.commandDriven)
             this.vtemplate_children = this.mapTemplatechildren(this.incubator, this.settings);
     }
-    setup() {
+    async setup() {
         try {
             this.load();
-            super.setup();
+            await super.setup();
             for (const child of this.vtemplate_children) {
                 child.setup();
             }
@@ -553,7 +557,7 @@ export class vTemplate extends vNode {
             this.state = Collection.lifecycle.error;
         }
     }
-    update() {
+    async update() {
         this.state = Collection.lifecycle.updating;
         try {
             this.render().then(() => {
@@ -606,7 +610,6 @@ export class vTemplate extends vNode {
                         this.reference[0].removeAttribute(attr.name);
                 }
             }
-            this.state = Collection.lifecycle.context_created;
             return react(output, { handler: this._handler });
         });
     }
@@ -674,11 +677,11 @@ export class vTemplate extends vNode {
             log(ex, Collection.message_type.error);
         }
     }
-    elaborateChildren() {
+    async elaborateChildren() {
         super.elaborateChildren();
         this.buildContext().then((context) => {
             this._handler.setContext(context);
-            // this._handler.trigger(Collection.node_event.dataset, this.context); obsolete?
+            this.state = Collection.lifecycle.context_created;
             //exclude for because of auto elaboration of command
             if (!this._commands.find((c) => c instanceof cFor)) {
                 for (const child of this.vtemplate_children) {

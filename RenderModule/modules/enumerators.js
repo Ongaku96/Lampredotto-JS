@@ -39,6 +39,7 @@ export var Collection;
         lifecycle[lifecycle["server"] = 11] = "server";
         lifecycle[lifecycle["context_creating"] = 12] = "context_creating";
         lifecycle[lifecycle["context_created"] = 13] = "context_created";
+        lifecycle[lifecycle["ready"] = 14] = "ready";
     })(lifecycle = Collection.lifecycle || (Collection.lifecycle = {}));
     let command;
     (function (command) {

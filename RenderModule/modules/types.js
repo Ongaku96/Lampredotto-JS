@@ -147,4 +147,39 @@ class StringAction {
         }
     }
 }
-export { StringAction, ApplicationBuilder }; //classes
+//#region INTERFACES
+/**Framework Settings */
+class Settings {
+    debug;
+    debug_mode;
+    formatters;
+    interface;
+    constructor(_default) {
+        if (_default) {
+            if (_default?.debug != null)
+                this.debug = _default?.debug;
+            if (_default?.debug_mode != null)
+                this.debug_mode = _default?.debug_mode;
+            if (_default?.formatters != null)
+                this.formatters = _default?.formatters;
+            if (_default?.interface != null)
+                this.interface = _default?.interface;
+        }
+    }
+    merge(settings) {
+        /**Merge parent Settings with personal settings */
+        if (settings.debug != null)
+            this.debug = settings.debug;
+        if (settings.debug_mode != null)
+            this.debug_mode = settings.debug_mode;
+        if (this.formatters == null)
+            this.formatters = [];
+        if (settings.formatters) {
+            for (const formatter of settings.formatters) {
+                this.formatters = this.formatters.filter(f => f.type !== formatter.type);
+                this.formatters.push(formatter);
+            }
+        }
+    }
+}
+export { Settings, StringAction, ApplicationBuilder }; //classes

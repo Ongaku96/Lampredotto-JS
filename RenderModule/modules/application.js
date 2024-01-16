@@ -1,6 +1,7 @@
 import { vNode } from "./virtualizer.js";
 import EventHandler from "./events.js";
 import { Support } from "./library.js";
+import { Settings } from "./types.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import { react, valueIsNotReactive } from "./reactive.js";
@@ -8,7 +9,7 @@ class Application {
     name = "";
     context = {};
     vdom = undefined;
-    settings = {};
+    settings = new Settings();
     handler = new EventHandler();
     _state = Collection.lifecycle.initialized;
     get state() { return this._state; }
@@ -33,7 +34,7 @@ class Application {
         try {
             this.state = Collection.lifecycle.setup;
             if (options.settings)
-                this.settings = options.settings;
+                this.settings.merge(options.settings);
             this.applySettings();
             this.vdom;
             this.setupEvents(options.events);
@@ -60,6 +61,7 @@ class Application {
     elaborate() {
         try {
             this.state = Collection.lifecycle.mounting;
+            this.vdom?.updateSettings(new Settings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters }));
             this.vdom?.elaborate(this.context);
             this.state = Collection.lifecycle.mounted;
         }
@@ -84,6 +86,10 @@ class Application {
         finally {
             this.handler.trigger(Collection.application_event.render, this);
         }
+    }
+    dismiss() {
+        this.state = Collection.lifecycle.unmounting;
+        this.state = Collection.lifecycle.unmounted;
     }
     //#region SETTINGS
     applySettings() {
@@ -158,7 +164,6 @@ class Application {
             document.documentElement.style.setProperty(`--${name}-a`, hex == "" || hex == "transparent" ? "0" : "1");
         }
         document.body.setAttribute("theme", this.settings.interface?.darkmode ? "dark" : "");
-        this.vdom?.updateSettings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters });
     }
     updateSettings(settings) {
         if (settings.interface)
@@ -166,10 +171,6 @@ class Application {
         this.applySettings();
     }
     //#endregion
-    dismiss() {
-        this.state = Collection.lifecycle.unmounting;
-        this.state = Collection.lifecycle.unmounted;
-    }
     //#region DATA
     async buildContext(dataset, actions, getters) {
         // if (dataset.darkmode == null) dataset.darkmode = function () { View.darkmode(); }

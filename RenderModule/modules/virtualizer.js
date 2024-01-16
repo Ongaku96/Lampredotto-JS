@@ -1,4 +1,5 @@
 import { Support } from "./library.js";
+import { Settings } from "./types.js";
 import { Collection, command_matches } from "./enumerators.js";
 import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
@@ -20,7 +21,7 @@ export class vNode {
     /**Data context of node */
     context = {};
     /**Settings of node */
-    settings = { debug: true, debug_mode: Collection.debug_mode.all };
+    settings = new Settings();
     //#endregion
     //#region PRIVATE
     _handler = new EventHandler(this.context); //events utility management
@@ -71,6 +72,7 @@ export class vNode {
     //#endregion
     constructor(original, parent) {
         this.id = Support.uniqueID();
+        this.updateSettings(this.parent?.settings);
         this.state = Collection.lifecycle.creating;
         this.backup = original.cloneNode(true);
         this.static = false;
@@ -130,8 +132,6 @@ export class vNode {
     }
     /**First elaboration of node, context definition and rendering  */
     async elaborate(context) {
-        if (this.parent)
-            this.mergeSettings(this.parent?.settings);
         if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
             this.reference[0].setAttribute("data-id", this.id);
         }
@@ -239,18 +239,12 @@ export class vNode {
             return false;
         }
     }
-    /**Merge parent Settings with personal settings */
-    mergeSettings(settings) {
-        if (settings.debug != null)
-            this.settings.debug = settings.debug;
-        if (settings.debug_mode != null)
-            this.settings.debug_mode = settings.debug_mode;
-        if (this.settings.formatters == null)
-            this.settings.formatters = [];
-        if (settings.formatters) {
-            for (const formatter of settings.formatters) {
-                if (!this.settings.formatters?.find(f => f.type == formatter.type))
-                    this.settings.formatters?.push(formatter);
+    /**Update node settings and children settings in cascade*/
+    updateSettings(settings) {
+        if (settings != null) {
+            this.settings.merge(settings);
+            for (const child of this.children) {
+                child.updateSettings(settings);
             }
         }
     }
@@ -448,7 +442,6 @@ export class vNode {
             for (const child of Array.from(_children)) {
                 if (this.checkChild(child)) {
                     let _node = vNode.newInstance(child, this);
-                    _node.updateSettings(this.settings);
                     this.setupChildEvents(_node);
                     this.children.push(_node);
                 }
@@ -457,7 +450,8 @@ export class vNode {
         catch (ex) {
             throw ex;
         }
-    } /**Check if child contains conditional rendering commands */
+    }
+    /**Check if child contains conditional rendering commands */
     checkChild(child) {
         if (child.nodeType == Node.ELEMENT_NODE)
             return child.getAttributeNames().find(a => a == cIf.key_else || a == cIf.key_elseif) == null;
@@ -480,14 +474,6 @@ export class vNode {
                 this._children = this._children.filter((c) => c.id != _node.id);
             }
         });
-    }
-    //#endregion
-    /**Update node settings and children settings in cascade*/
-    updateSettings(settings) {
-        this.mergeSettings(settings);
-        for (const child of this.children) {
-            child.updateSettings(settings);
-        }
     }
 }
 /**virtual node for templates */
@@ -542,7 +528,7 @@ export class vTemplate extends vNode {
             this.slots = options.slots;
         this._incubator = this.getRender();
         if (!this.commandDriven)
-            this.vtemplate_children = this.mapTemplatechildren(this.incubator, this.settings);
+            this.vtemplate_children = this.mapTemplatechildren(this.incubator);
     }
     async setup() {
         try {
@@ -618,12 +604,11 @@ export class vTemplate extends vNode {
         return Support.templateFromString(this.template);
     }
     /**Elaborate template's virtual nodes  */
-    mapTemplatechildren(render, settings) {
+    mapTemplatechildren(render) {
         let _children = [];
         for (const child of Array.from(render.childNodes)) {
             if (this.checkChild(child)) {
                 let _node = vNode.newInstance(child, this);
-                _node.updateSettings(settings);
                 this.setupChildEvents(_node);
                 _children.push(_node);
             }
@@ -689,5 +674,14 @@ export class vTemplate extends vNode {
                 }
             }
         });
+    }
+    /**Update node settings and children settings in cascade*/
+    updateSettings(settings) {
+        if (settings != null) {
+            super.updateSettings(settings);
+            for (const child of this.vtemplate_children) {
+                child.updateSettings(settings);
+            }
+        }
     }
 }

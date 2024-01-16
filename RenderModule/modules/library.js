@@ -151,7 +151,7 @@ export var Support;
                         prop = prop[_array_path[i]];
                     }
                     else {
-                        return null;
+                        return undefined;
                     }
                 }
                 return prop;
@@ -189,7 +189,7 @@ export var Support;
     function format(value, formatters) {
         try {
             if (formatters) {
-                let _formatter = formatters?.find(f => f.type === typeof value);
+                let _formatter = formatters?.find(f => typeof f.type == "string" ? f.type === typeof value : value instanceof f.type);
                 return _formatter ? _formatter.stamp(value) : value;
             }
             return value;

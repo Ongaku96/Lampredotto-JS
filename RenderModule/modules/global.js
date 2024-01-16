@@ -137,6 +137,9 @@ String.prototype.escapeHTML = function () {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 };
+String.prototype.padRight = function (count) {
+    return this.substring(this.length - count);
+};
 /**Slice array */
 Array.prototype.subarray = function (start, count = 0) {
     if (!count)
@@ -152,3 +155,6 @@ Array.prototype.prepend = function (value) {
     newArray.unshift(value);
     return newArray;
 };
+// Date.prototype.toFormatDateString = function (format: string) {
+//     return this.toString();
+// }

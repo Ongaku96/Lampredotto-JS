@@ -265,6 +265,19 @@ class cModel extends Command {
                                 _debug = _checked;
                                 node.reference[0].checked = _debug;
                                 break;
+                            case "date":
+                                try {
+                                    _debug = Support.getValue(node.context, this.reference);
+                                    var date = _debug instanceof Date ? _debug : new Date(_debug);
+                                    node.reference[0].value =
+                                        date.getFullYear() + "-" +
+                                            ("00" + (date.getMonth() + 1).toString()).padRight(2) + "-" +
+                                            ("00" + date.getDate()).padRight(2);
+                                }
+                                catch (ex) {
+                                    log("error converting '" + _debug + "' to datetime: " + ex, Collection.message_type.error);
+                                }
+                                break;
                             default:
                                 _debug = this.readValue(node.context, node.settings);
                                 node.reference[0].value = _debug;

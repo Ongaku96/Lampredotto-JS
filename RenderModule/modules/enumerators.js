@@ -157,6 +157,11 @@ export var Collection;
         static gigabyte;
     }
     Collection.filesize = filesize;
+    Collection.KeyWords = {
+        node: "__node",
+        app: "__app",
+        reference: "__ref"
+    };
 })(Collection || (Collection = {}));
 /**Collection of the framework errors with details*/
 export const errors_mapper = new Map([

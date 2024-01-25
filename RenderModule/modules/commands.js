@@ -294,8 +294,17 @@ class cModel extends Command {
                             }
                         }
                         else {
-                            _debug = _new_value;
-                            node.reference[0].value = _debug;
+                            if (node.state === Collection.lifecycle.mounting) {
+                                node.onProgress((state) => {
+                                    _debug = this.reference ? Support.getValue(node.context, this.reference) : _new_value;
+                                    switch (state) {
+                                        case Collection.lifecycle[Collection.lifecycle.mounted]:
+                                        case Collection.lifecycle[Collection.lifecycle.updated]:
+                                            node.reference[0].value = _debug;
+                                            break;
+                                    }
+                                });
+                            }
                         }
                         break;
                     default:
@@ -389,7 +398,7 @@ class cModel extends Command {
                                 break;
                             case "date":
                             case "datetime-local":
-                                Support.setValue(input.context, this.reference, _new_value ? Date.parse(_new_value) : _new_value);
+                                Support.setValue(input.context, this.reference, _new_value ? new Date(_new_value) : _new_value);
                                 break;
                             case "number":
                                 Support.setValue(input.context, this.reference, _new_value ? Number(_new_value) : _new_value);
@@ -546,21 +555,13 @@ class cFor extends Command {
                             else {
                                 _context[_me.alias] = react(_data[i], _reactive);
                             }
-                            //obsolete?
-                            // _new_node.onDataset((data: DataCollection) => {
-                            //     if (Support.isPrimitive(_data[i])) {
-                            //         ref(data, _me.alias, _data[i], _reactive);
-                            //     } else {
-                            //         data[_me.alias] = react(_data[i], _reactive);
-                            //     }
-                            // });
                             _new_node.setup();
                             _new_node.elaborate(_context); //render template content
                             return _new_node;
                         }
                         function elaborateTemplate(index) {
+                            //replace index references
                             let _html = _me.template.replace(new RegExp(cFor.index, "g"), index.toString());
-                            _html = _html.replaceAll(cFor.index, index.toString());
                             //convert html string code to Document Fragment
                             let _template = Support.templateFromString(_html)?.firstChild;
                             return _template;
@@ -593,12 +594,11 @@ class cFor extends Command {
                 if (!(_param in data[0])) {
                     _param = renderBrackets(this._sort, node.context, node.settings);
                     this._desc = _param.includes("desc");
-                    _param = _param.replace("desc", "").trim();
+                    _param = _param.replace(/desc/g, "").trim();
                 }
                 if (_param) {
                     _param = _param
-                        .replace(this.alias + ".", "")
-                        .replace(this.alias, "")
+                        .replace(new RegExp(this.alias + "\.|\$\." + this.alias + "\.|" + this.alias + "|\$\." + this.alias, "g"), "")
                         .trim();
                     return data.sort(Support.dynamicSort(_param, this._desc));
                 }
@@ -614,7 +614,7 @@ class cFor extends Command {
             if (this._filter && index >= 0) {
                 let _function = "return " + this._filter
                     .replace(new RegExp(cFor.index, "g"), index.toString())
-                    .replace(new RegExp(this.alias, "g"), `$.${this.reference}[${index}]`);
+                    .replace(new RegExp(this.alias + "|" + ("\$\." + this.alias), "g"), `$.${this.reference}[${index}]`);
                 return Support.runFunctionByString(_function, context);
             }
             return true;

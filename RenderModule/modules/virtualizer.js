@@ -51,6 +51,8 @@ export class vNode {
     get incubator() { return this._incubator; }
     /**Reference container */
     get reference() { return this._reference; }
+    /**Reference container */
+    get firstChild() { return this._reference[0] || undefined; }
     /**Type of node */
     get nodeType() { return this.backup.nodeType; }
     /**Node name */
@@ -68,7 +70,7 @@ export class vNode {
     /**Get if node is application root */
     get root() { return this.parent == null; }
     /**Get this application root virtual node */
-    get application() { return this.parent ? this.parent.application : this; }
+    get application() { return this.parent?.context.__app || undefined; }
     //#endregion
     constructor(original, parent) {
         this.id = Support.uniqueID();
@@ -566,7 +568,9 @@ export class vTemplate extends vNode {
         let _update;
         return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
             .then((output) => {
-            output["__node"] = this;
+            output[Collection.KeyWords.node] = this;
+            output[Collection.KeyWords.reference] = this.firstChild;
+            output[Collection.KeyWords.app] = this.application;
             for (const attr of this.attributes) {
                 if (!(attr.prop in output && attr.name == "")) {
                     let _options = {

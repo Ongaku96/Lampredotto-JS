@@ -175,8 +175,9 @@ class Application {
     async buildContext(dataset, actions, getters) {
         // if (dataset.darkmode == null) dataset.darkmode = function () { View.darkmode(); }
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
-            output["__node"] = this.vdom;
-            output["__app"] = this;
+            output[Collection.KeyWords.app] = this;
+            output[Collection.KeyWords.node] = this.vdom;
+            output[Collection.KeyWords.reference] = this.vdom?.firstChild;
             if (valueIsNotReactive(output))
                 output = react(output, this.reactivity);
             this.context = output;

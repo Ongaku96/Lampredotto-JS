@@ -55,7 +55,7 @@ export function openFloatingMenu(item) {
     let _container = item.closest(menu_keys.query(menu_keys.container));
     _container.setAttribute(menu_keys.container, "show");
     let _container_rect = _container.getBoundingClientRect();
-    item.style.minWidth = _container_rect.width + "px";
+    // item.style.minWidth = _container_rect.width + "px";
     let _rect = item.getBoundingClientRect();
     let _position = item.getAttribute(menu_keys.item);
     let _left = _container_rect.left;

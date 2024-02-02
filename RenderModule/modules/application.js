@@ -23,8 +23,8 @@ class Application {
     };
     get reactivity() { return this._reactivity; }
     constructor(id) {
-        this.state = Collection.lifecycle.creating;
         this.defaultEvents();
+        this.state = Collection.lifecycle.creating;
         this.name = id;
         this.virtualizeDom();
         this.state = Collection.lifecycle.created;
@@ -36,7 +36,6 @@ class Application {
             if (options.settings)
                 this.settings.merge(options.settings);
             this.applySettings();
-            this.vdom;
             this.setupEvents(options.events);
             return this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
         }

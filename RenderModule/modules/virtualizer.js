@@ -569,7 +569,7 @@ export class vTemplate extends vNode {
         return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
             .then((output) => {
             output[Collection.KeyWords.node] = this;
-            output[Collection.KeyWords.reference] = this.firstChild;
+            output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
             output[Collection.KeyWords.app] = this.application;
             for (const attr of this.attributes) {
                 if (!(attr.prop in output && attr.name == "")) {

@@ -7,7 +7,6 @@ defineComponent({
         position: fixed;
         top: 0;
         left: 0;
-        max-height: 500px;
         overflow-y: auto;
         @include elevated();
     }

@@ -578,7 +578,6 @@ export class vTemplate extends vNode {
                         node: this,
                         get: (_target, _key, _context) => {
                             if (attr.ref) {
-                                //parent.context ? 
                                 return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
                             }
                             return Support.getValue(_target, _vault_key + "." + _key);

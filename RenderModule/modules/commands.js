@@ -1,6 +1,6 @@
 import { vNode } from "./virtualizer.js";
 import { Support } from "./library.js";
-import { elaborateContent, react, ref, renderBrackets } from "./reactive.js";
+import { elaborateContent, renderBrackets } from "./reactive.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import EventHandler from "./events.js";
@@ -477,7 +477,7 @@ class cFor extends Command {
                                 //build and prepare html template code
                                 let _template = elaborateTemplate(i);
                                 //Initialize virtual node tree of template
-                                let _new_node = setupNewNode(_template, i, _context); //render template content
+                                let _new_node = setupNewNode(_template, _data[i], _context); //render template content
                                 for (const render of _new_node.reference) {
                                     node.incubator.appendChild(render);
                                 }
@@ -497,7 +497,7 @@ class cFor extends Command {
                         //                 //build and prepare html template code
                         //                 let _template = elaborateTemplate(i);
                         //                 //Initialize virtual node tree of template
-                        //                 let _new_node = setupNewNode(_template, i, _context); //render template content
+                        //                 let _new_node = setupNewNode(_template, _data[i], _context); //render template content
                         //                 //inject the result in node's incubator
                         //                 if (i > 0) {
                         //                     let _before = _me._backup[i - 1];
@@ -531,33 +531,34 @@ class cFor extends Command {
                         //         }
                         //     }
                         // }
-                        function setupNewNode(_template, i, _context) {
+                        function setupNewNode(_template, item, _context) {
                             let _new_node = vNode.newInstance(_template, node);
-                            //setup internal reactivity rules with passive dynamic update of parent data 
-                            let _reactive = {
-                                get: (_target, _key) => {
-                                    if (_key && typeof _data[i] == "object")
-                                        return _data[i][_key];
-                                    return _data[i];
-                                },
-                                set: (_target, _key, newvalue) => {
-                                    if (_target === _data[i])
-                                        Support.setValue(_data[i], _key, newvalue);
-                                    else
-                                        _data[i] = newvalue;
-                                    _new_node.update();
-                                }
-                            };
-                            //inject current array value into internal context
-                            if (Support.isPrimitive(_data[i])) {
-                                ref(_context, _me.alias, _data[i], _reactive);
-                            }
-                            else {
-                                _context[_me.alias] = react(_data[i], _reactive);
-                            }
+                            _context[_me.alias] = item;
                             _new_node.setup();
                             _new_node.elaborate(_context); //render template content
                             return _new_node;
+                            //PROBLEMS WITH PROXY ON ITEM: 
+                            //  Cannot difference data[i] form eventual array children, 
+                            //  Target in get refer to himself so it will go in loop. So I needed to refer to data[i] but in case of annidate for, the child array will never be seen. 
+                            //setup internal reactivity rules with passive dynamic update of parent data 
+                            // let _reactive: ReactivityOptions = {
+                            //     get: (_target: any, _key: any) => {
+                            //         if (typeof _data[_key] == "function") return Reflect.get(_data, _key).bind(_data);
+                            //         if (_key && typeof _data[i] == "object" && _key in _data[i]) return Reflect.get(_data[i], _key);
+                            //         return Reflect.get(_data, i);
+                            //     },
+                            //     set: (_target: any, _key: any, newvalue: any) => {
+                            //         if (_target === _data[i])
+                            //             Support.setValue(_data[i], _key, newvalue); else _data[i] = newvalue;
+                            //         _new_node.update();
+                            //     }
+                            // };
+                            //inject current array value into internal context
+                            // if (Support.isPrimitive(_data[i])) {
+                            //     ref(_context, _me.alias, _data[i], _reactive);
+                            // } else {
+                            //     _context[_me.alias] = react(_data[i], _reactive);
+                            // }
                         }
                         function elaborateTemplate(index) {
                             //replace index references

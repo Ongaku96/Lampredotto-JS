@@ -204,6 +204,7 @@ export class vNode {
                     }
                     break;
             }
+            this._handler.trigger(Collection.node_event.render);
         }
     }
     //#region ELABORATION
@@ -657,7 +658,7 @@ export class vTemplate extends vNode {
                     _element.setAttribute(attr, (_element.hasAttribute(attr) ? _element.getAttribute(attr) + " " : "") + this.element?.getAttribute(attr));
                 }
             }
-            this._handler.trigger(Collection.node_event.render, this.incubator, this);
+            //this._handler.trigger(Collection.node_event.render, this.incubator, this);
             this.incubator.querySelectorAll("ref").forEach(e => e.remove());
             this.replaceNodes();
         }

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Edu+SA+Beginner&family=Vina+Sans&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --global-radius: 8px;
+        }
+
+        body {
+            background-color: gray;
+        }
+
+        #playground {
+            display: grid;
+            grid-template-columns: auto auto auto auto;
+            gap: 16px;
+        }
+
+        section {
+            border-radius: 16px;
+            padding: 24px;
+            padding-top: 0;
+            background-color: lightgray;
+            max-height: 450px;
+            overflow: auto;
+        }
+
+        section>h3[head] {
+            top: 0;
+            position: sticky;
+            background-color: lightgray;
+            padding: 24px;
+        }
+
+        section>div[name='test'] {
+            display: flex;
+            flex-direction: column;
+        }
+
+        section>div[name='test']>section {
+            margin: 8px 0;
+            padding: 16px;
+            border-radius: 16px;
+            background-color: darkgrey;
+        }
+
+        section.success {
+            border: solid 2px green;
+        }
+
+        section.error {
+            border: solid 2px red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="playground">
+        <test-model></test-model>
+        <test-on></test-on>
+        <test-bind></test-bind>
+        <test-if></test-if>
+        <test-for></test-for>
+        <test-lifecycle></test-lifecycle>
+        <test-components></test-components>
+    </div>
+    <!--  -->
+    <script type="module">
+        import RenderEngine from "./LampRender.js";
+        import "./components.js";
+
+        var myapp = RenderEngine.instance.start("playground").build({
+            settings: {
+                debug: true,
+                debug_mode: "all",
+                interface: { darkmode: true },
+            },
+        });
+    </script>
+</body>
+
+</html>

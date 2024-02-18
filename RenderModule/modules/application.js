@@ -27,7 +27,6 @@ class Application {
         this.state = Collection.lifecycle.creating;
         this.name = id;
         this.virtualizeDom();
-        this.state = Collection.lifecycle.created;
     }
     /**Build the application */
     async build(options) {
@@ -46,11 +45,12 @@ class Application {
         }
     }
     virtualizeDom() {
-        this.state = Collection.lifecycle.mounting;
         let _seed = document.getElementById(this.name);
         if (_seed != null) {
             this.vdom = vNode.newInstance(_seed, undefined);
-            this.vdom.setup();
+            this.vdom.setup().then(() => {
+                this.state = Collection.lifecycle.created;
+            });
         }
         else {
             log("Impossible to find element with id '" + this.name + "'", Collection.message_type.error);
@@ -61,8 +61,7 @@ class Application {
         try {
             this.state = Collection.lifecycle.mounting;
             this.vdom?.updateSettings(new Settings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters }));
-            this.vdom?.elaborate(this.context);
-            this.state = Collection.lifecycle.mounted;
+            this.vdom?.elaborate(this.context).then(() => { this.state = Collection.lifecycle.mounted; });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -75,8 +74,7 @@ class Application {
     update() {
         try {
             this.state = Collection.lifecycle.updating;
-            this.vdom?.update();
-            this.state = Collection.lifecycle.updated;
+            this.vdom?.update().then(() => { this.state = Collection.lifecycle.updated; });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -88,6 +86,9 @@ class Application {
     }
     dismiss() {
         this.state = Collection.lifecycle.unmounting;
+        this.vdom?.dismiss();
+        this.vdom = undefined;
+        this.context = {};
         this.state = Collection.lifecycle.unmounted;
     }
     //#region SETTINGS

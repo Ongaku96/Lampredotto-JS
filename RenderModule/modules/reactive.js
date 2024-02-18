@@ -59,7 +59,9 @@ export function react(obj, options) {
 /**Default method to process value */
 function trigger(target, key, _options) {
     try {
-        return typeof Reflect.get(target, key) === 'function' ? Reflect.get(target, key).bind(target) : Reflect.get(target, key);
+        return typeof Reflect.get(target, key) === 'function' ?
+            Reflect.get(target, key).bind(Array.isArray(target) ? react(target, _options) : target) :
+            Reflect.get(target, key);
     }
     catch (ex) {
         throw ex;

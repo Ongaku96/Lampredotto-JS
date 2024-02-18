@@ -107,6 +107,7 @@ export class vNode {
     /**Definition of node's dynamic elements like commands */
     async setup() {
         try {
+            this.state = Collection.lifecycle.setup;
             if (!this.static) {
                 this.incubator.appendChild(this.backup.cloneNode(false));
                 for (let comm of this._commands) {
@@ -125,7 +126,6 @@ export class vNode {
             for (const child of this.children) {
                 child.setup();
             }
-            this.state = Collection.lifecycle.setup;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -134,10 +134,10 @@ export class vNode {
     }
     /**First elaboration of node, context definition and rendering  */
     async elaborate(context) {
+        this.state = Collection.lifecycle.mounting;
         if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
             this.reference[0].setAttribute("data-id", this.id);
         }
-        this.state = Collection.lifecycle.mounting;
         try {
             let processes = [];
             this.context = context ?
@@ -149,7 +149,10 @@ export class vNode {
             }));
             processes.push(this.elaborateChildren());
             this.onInject(async (node) => { node.elaborate(); });
-            await Promise.all(processes).then(() => { this.state = Collection.lifecycle.ready; });
+            Promise.all(processes).then(() => {
+                this.state = Collection.lifecycle.ready;
+                this._handler.trigger(Collection.node_event.render, this.firstChild);
+            });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -167,7 +170,10 @@ export class vNode {
             for (const child of this.children) {
                 processes.push(child.update());
             }
-            await Promise.all(processes).then(() => { this.state = Collection.lifecycle.ready; });
+            Promise.all(processes).then(() => {
+                this.state = Collection.lifecycle.ready;
+                this._handler.trigger(Collection.node_event.render, this.firstChild);
+            });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -204,7 +210,27 @@ export class vNode {
                     }
                     break;
             }
-            this._handler.trigger(Collection.node_event.render);
+        }
+    }
+    /**Remove all references from child to itself */
+    dismiss() {
+        try {
+            this.state = Collection.lifecycle.unmounting;
+            for (var child of this.children) {
+                child.dismiss();
+            }
+            this._children = [];
+            if (this.reference.length) {
+                for (var element of this.reference) {
+                    if (element.nodeType == Node.ELEMENT_NODE) {
+                        element.remove();
+                    }
+                }
+            }
+            this.state = Collection.lifecycle.unmounted;
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
         }
     }
     //#region ELABORATION
@@ -311,21 +337,6 @@ export class vNode {
             log(ex, Collection.message_type.error);
         }
     }
-    /**Remove node from virtualizer and DOM*/
-    clear() {
-        try {
-            this.state = Collection.lifecycle.unmounting;
-            if (this.reference.length) {
-                for (const element of this.reference) {
-                    element.remove();
-                }
-            }
-            this.state = Collection.lifecycle.unmounted;
-        }
-        catch (ex) {
-            log(ex, Collection.message_type.error);
-        }
-    }
     /**Replace first reference DOM element with another */
     replaceWith(node) {
         try {
@@ -418,7 +429,7 @@ export class vNode {
             if (filter) {
                 let _filtered = this._children.filter((e) => filter(e));
                 for (const child of _filtered) {
-                    child.clear();
+                    child.dismiss();
                 }
                 this._children = _filtered;
             }
@@ -477,6 +488,13 @@ export class vNode {
                 this._children = this._children.filter((c) => c.id != _node.id);
             }
         });
+    }
+    /**Check in original document if this element or its parents has one or more specified tag properties between class, nodeName and attributes */
+    childOf(query) {
+        var isChild = (element) => {
+            return element.hasAttribute(query.attribute) || element.nodeName == query.nodeName || element.className.includes(query.class);
+        };
+        return this.isElement && isChild(this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
     }
 }
 /**virtual node for templates */
@@ -551,17 +569,33 @@ export class vTemplate extends vNode {
         try {
             this.render().then(() => {
                 this.state = Collection.lifecycle.updated;
-                for (const child of this.vtemplate_children) {
+                for (const tchild of this.vtemplate_children) {
+                    tchild.update();
+                }
+                for (const child of this.children) {
                     child.update();
                 }
+            }).then(() => {
+                this.state = Collection.lifecycle.ready;
+                this._handler.trigger(Collection.node_event.render, this.firstChild);
             });
-            for (const child of this.children) {
-                child.update();
-            }
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
+        }
+    }
+    dismiss() {
+        try {
+            this.state = Collection.lifecycle.unmounting;
+            for (var child of this.vtemplate_children) {
+                child.dismiss();
+            }
+            this.vtemplate_children = [];
+            super.dismiss();
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
         }
     }
     async buildContext() {
@@ -667,8 +701,7 @@ export class vTemplate extends vNode {
         }
     }
     async elaborateChildren() {
-        super.elaborateChildren();
-        this.buildContext().then((context) => {
+        await this.buildContext().then(async (context) => {
             this._handler.setContext(context);
             this.state = Collection.lifecycle.context_created;
             //exclude for because of auto elaboration of command
@@ -677,6 +710,8 @@ export class vTemplate extends vNode {
                     child.elaborate(context);
                 }
             }
+        }).then(() => {
+            super.elaborateChildren();
         });
     }
     /**Update node settings and children settings in cascade*/

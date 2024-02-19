@@ -298,8 +298,7 @@ class cModel extends Command {
                                 node.onProgress((state) => {
                                     _debug = this.reference ? Support.getValue(node.context, this.reference) : _new_value;
                                     switch (state) {
-                                        case Collection.lifecycle[Collection.lifecycle.mounted]:
-                                        case Collection.lifecycle[Collection.lifecycle.updated]:
+                                        case Collection.lifecycle[Collection.lifecycle.ready]:
                                             node.reference[0].value = _debug;
                                             break;
                                     }

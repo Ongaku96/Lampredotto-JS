@@ -98,6 +98,7 @@ export class vNode {
             original.virtual = this;
             this.reference.push(original);
             this.state = Collection.lifecycle.created;
+            this._handler.trigger(Collection.node_event.virtualized, this);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -123,9 +124,8 @@ export class vNode {
                         this._command_visitor.visitFor(comm);
                 }
             }
-            for (const child of this.children) {
-                child.setup();
-            }
+            await this.setupChildren();
+            this._handler.trigger(Collection.node_event.setup, this._commands);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -139,20 +139,12 @@ export class vNode {
             this.reference[0].setAttribute("data-id", this.id);
         }
         try {
-            let processes = [];
-            this.context = context ?
-                context : (this.parent ?
-                this.parent.context : {});
-            this._handler.setContext(this.context);
-            processes.push(this.render().then(() => {
-                this.state = Collection.lifecycle.mounted;
-            }));
-            processes.push(this.elaborateChildren());
+            await this.elaborateContext(context);
+            await this.render();
+            await this.elaborateChildren();
             this.onInject(async (node) => { node.elaborate(); });
-            Promise.all(processes).then(() => {
-                this.state = Collection.lifecycle.ready;
-                this._handler.trigger(Collection.node_event.render, this.firstChild);
-            });
+            this.state = Collection.lifecycle.mounted;
+            this.state = Collection.lifecycle.ready;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -162,18 +154,11 @@ export class vNode {
     /**Update node and node's child rendering */
     async update() {
         this.state = Collection.lifecycle.updating;
-        let processes = [];
         try {
-            processes.push(this.render().then(() => {
-                this.state = Collection.lifecycle.updated;
-            }));
-            for (const child of this.children) {
-                processes.push(child.update());
-            }
-            Promise.all(processes).then(() => {
-                this.state = Collection.lifecycle.ready;
-                this._handler.trigger(Collection.node_event.render, this.firstChild);
-            });
+            await this.render();
+            await this.updateChildren();
+            this.state = Collection.lifecycle.updated;
+            this.state = Collection.lifecycle.ready;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -211,9 +196,10 @@ export class vNode {
                     break;
             }
         }
+        this._handler.trigger(Collection.node_event.render, this.firstChild);
     }
     /**Remove all references from child to itself */
-    dismiss() {
+    async dismiss() {
         try {
             this.state = Collection.lifecycle.unmounting;
             for (var child of this.children) {
@@ -267,6 +253,12 @@ export class vNode {
             }
             return false;
         }
+    }
+    /**Setup Node's context */
+    async elaborateContext(context) {
+        this.context = context || this.parent?.context || {};
+        this._handler.setContext(this.context);
+        this._handler.trigger(Collection.node_event.dataset, this.context);
     }
     /**Update node settings and children settings in cascade*/
     updateSettings(settings) {
@@ -473,13 +465,31 @@ export class vNode {
             return child.nodeValue?.replace(/[\\n\s]*/g, "") != "";
         return true;
     }
+    /**Setup children */
+    async setupChildren() {
+        let _setup = [];
+        for (const child of this.children) {
+            _setup.push(child.setup());
+        }
+        return Promise.all(_setup);
+    }
     /**Run first elaboration command to all children */
     async elaborateChildren() {
+        let _elabs = [];
         if (!this._commands.find((c) => c instanceof cFor)) { //exclude for because of auto elaboration of command
             for (const child of this.children) {
-                child.elaborate();
+                _elabs.push(child.elaborate(this.context));
             }
         }
+        return Promise.all(_elabs);
+    }
+    /**Update  node's children */
+    async updateChildren() {
+        let _updates = [];
+        for (const child of this.children) {
+            _updates.push(child.update());
+        }
+        return Promise.all(_updates);
     }
     /**Setup default events on children */
     setupChildEvents(_node) {
@@ -555,44 +565,20 @@ export class vTemplate extends vNode {
         try {
             this.load();
             await super.setup();
-            for (const child of this.vtemplate_children) {
-                child.setup();
-            }
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
     }
-    async update() {
-        this.state = Collection.lifecycle.updating;
-        try {
-            this.render().then(() => {
-                this.state = Collection.lifecycle.updated;
-                for (const tchild of this.vtemplate_children) {
-                    tchild.update();
-                }
-                for (const child of this.children) {
-                    child.update();
-                }
-            }).then(() => {
-                this.state = Collection.lifecycle.ready;
-                this._handler.trigger(Collection.node_event.render, this.firstChild);
-            });
-        }
-        catch (ex) {
-            log(ex, Collection.message_type.error);
-            this.state = Collection.lifecycle.error;
-        }
-    }
-    dismiss() {
+    async dismiss() {
         try {
             this.state = Collection.lifecycle.unmounting;
             for (var child of this.vtemplate_children) {
                 child.dismiss();
             }
             this.vtemplate_children = [];
-            super.dismiss();
+            await super.dismiss();
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -635,6 +621,16 @@ export class vTemplate extends vNode {
                 }
             }
             return react(output, { handler: this._handler });
+        }).then((context) => {
+            this.state = Collection.lifecycle.context_created;
+            return context;
+        });
+    }
+    async elaborateContext(context) {
+        await this.buildContext().then((template_context) => {
+            this.context = context || this.parent?.context || template_context || {};
+            this._handler.setContext(template_context);
+            this._handler.trigger(Collection.node_event.dataset, template_context);
         });
     }
     /**Elaborate template's document fragment */
@@ -700,18 +696,36 @@ export class vTemplate extends vNode {
             log(ex, Collection.message_type.error);
         }
     }
+    async setupChildren() {
+        return super.setupChildren().then(() => {
+            var _setup = [];
+            //exclude for because of auto elaboration of command
+            for (const child of this.vtemplate_children) {
+                _setup.push(child.setup());
+            }
+            return Promise.all(_setup);
+        });
+    }
     async elaborateChildren() {
-        await this.buildContext().then(async (context) => {
-            this._handler.setContext(context);
-            this.state = Collection.lifecycle.context_created;
+        return super.elaborateChildren().then(() => {
+            var _elabs = [];
             //exclude for because of auto elaboration of command
             if (!this._commands.find((c) => c instanceof cFor)) {
                 for (const child of this.vtemplate_children) {
-                    child.elaborate(context);
+                    _elabs.push(child.elaborate(this._handler.Context || this.context));
                 }
             }
-        }).then(() => {
-            super.elaborateChildren();
+            return Promise.all(_elabs);
+        });
+    }
+    async updateChildren() {
+        return super.updateChildren().then(() => {
+            var _elabs = [];
+            //exclude for because of auto elaboration of command
+            for (const child of this.vtemplate_children) {
+                _elabs.push(child.update());
+            }
+            return Promise.all(_elabs);
         });
     }
     /**Update node settings and children settings in cascade*/

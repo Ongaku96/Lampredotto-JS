@@ -3,6 +3,8 @@ import "./global.js";
 export default class EventHandler {
     events = [];
     context;
+    get Context() { return this.context; }
+    ;
     constructor(dataset) {
         if (dataset)
             this.setContext(dataset);

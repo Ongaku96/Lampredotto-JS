@@ -39,7 +39,7 @@ export function floatingMenuManagement(e) {
         if (clickedElement) {
             let virtualCondition = "virtual" in clickedElement ?
                 !clickedElement.virtual.childOf({ attribute: menu_keys.item }) &&
-                !clickedElement.virtual.childOf({ attribute: menu_keys.toggle }) : true;
+                    !clickedElement.virtual.childOf({ attribute: menu_keys.toggle }) : true;
             return virtualCondition;
         }
         return true;

@@ -142,7 +142,6 @@ export class vNode {
             await this.elaborateContext(context);
             await this.render();
             await this.elaborateChildren();
-            this.onInject(async (node) => { node.elaborate(); });
             this.state = Collection.lifecycle.mounted;
             this.state = Collection.lifecycle.ready;
             this._handler.trigger(Collection.node_event.render, this.firstChild);
@@ -198,6 +197,7 @@ export class vNode {
                     break;
             }
         }
+        this.onInject(async (node) => { node.elaborate(); });
     }
     /**Remove all references from child to itself */
     async dismiss() {
@@ -479,7 +479,7 @@ export class vNode {
         let _elabs = [];
         if (!this._commands.find((c) => c instanceof cFor)) { //exclude for because of auto elaboration of command
             for (const child of this.children) {
-                _elabs.push(child.elaborate(this.context));
+                _elabs.push(child.elaborate());
             }
         }
         return Promise.all(_elabs);

@@ -145,6 +145,7 @@ export class vNode {
             this.onInject(async (node) => { node.elaborate(); });
             this.state = Collection.lifecycle.mounted;
             this.state = Collection.lifecycle.ready;
+            this._handler.trigger(Collection.node_event.render, this.firstChild);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -159,6 +160,7 @@ export class vNode {
             await this.updateChildren();
             this.state = Collection.lifecycle.updated;
             this.state = Collection.lifecycle.ready;
+            this._handler.trigger(Collection.node_event.render, this.firstChild);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -196,7 +198,6 @@ export class vNode {
                     break;
             }
         }
-        this._handler.trigger(Collection.node_event.render, this.firstChild);
     }
     /**Remove all references from child to itself */
     async dismiss() {

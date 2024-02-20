@@ -37,9 +37,9 @@ export function floatingMenuManagement(e) {
     var clickedElement = e.target;
     function isUnfocused() {
         if (clickedElement) {
-            let virtualCondition = "virtual" in clickedElement ?
+            let virtualCondition = "virtual" in clickedElement &&
                 !clickedElement.virtual.childOf({ attribute: menu_keys.item }) &&
-                !clickedElement.virtual.childOf({ attribute: menu_keys.toggle }) : true;
+                !clickedElement.virtual.childOf({ attribute: menu_keys.toggle });
             return virtualCondition;
         }
         return true;
@@ -58,7 +58,7 @@ export function floatingMenuManagement(e) {
     if (isToggle()) {
         closeOpenedMenus(clickedElement);
         let _parent = clickedElement?.closest(menu_keys.query(menu_keys.container));
-        if (_parent && _parent.getAttribute(menu_keys.container) != "show") {
+        if (_parent.getAttribute(menu_keys.container) != "show") {
             let _item = _parent.querySelector(menu_keys.query(menu_keys.item));
             if (_item)
                 openFloatingMenu(_item);

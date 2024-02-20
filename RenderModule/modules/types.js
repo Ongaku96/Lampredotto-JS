@@ -180,6 +180,8 @@ class Settings {
                 this.formatters.push(formatter);
             }
         }
+        if (settings.interface)
+            this.interface = settings.interface;
     }
 }
 export { Settings, StringAction, ApplicationBuilder }; //classes

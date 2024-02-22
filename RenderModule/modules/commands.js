@@ -298,7 +298,7 @@ class cModel extends Command {
                                 node.onProgress((state) => {
                                     _debug = this.reference ? Support.getValue(node.context, this.reference) : _new_value;
                                     switch (state) {
-                                        case Collection.lifecycle[Collection.lifecycle.ready]:
+                                        case Collection.lifecycle.ready:
                                             node.reference[0].value = _debug;
                                             break;
                                     }
@@ -531,7 +531,7 @@ class cFor extends Command {
                         //     }
                         // }
                         function setupNewNode(_template, item, _context) {
-                            let _new_node = vNode.newInstance(_template, node);
+                            let _new_node = vNode.newInstance(_template, node.parent);
                             _context[_me.alias] = item;
                             _new_node.setup();
                             _new_node.elaborate(_context); //render template content
@@ -729,7 +729,7 @@ class cIf extends Command {
             }
         }
         function virtualizeTemplate(_template) {
-            let _vnode = vNode.newInstance(_template, node);
+            let _vnode = vNode.newInstance(_template, node.parent);
             _vnode.setup();
             _vnode.elaborate();
             return _vnode;

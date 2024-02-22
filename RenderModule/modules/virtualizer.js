@@ -37,11 +37,10 @@ export class vNode {
     //#region PROPERTIES
     set state(value) {
         this._state = value;
-        this._handler.trigger(Collection.node_event.progress, this.current_state);
+        this._handler.trigger(Collection.node_event.progress, this.state);
     }
     /**State of node's elaboration */
     get state() { return this._state; }
-    get current_state() { return Collection.lifecycle[this.state]; }
     get isElement() { return this.backup.nodeType == Node.ELEMENT_NODE; }
     /**Original element in case node is HTML Element */
     get element() { return this.isElement ? this.backup : null; }
@@ -141,6 +140,7 @@ export class vNode {
         try {
             await this.elaborateContext(context);
             await this.render();
+            this.onInject(async (node) => { node.elaborate(); });
             await this.elaborateChildren();
             this.state = Collection.lifecycle.mounted;
             this.state = Collection.lifecycle.ready;
@@ -197,7 +197,6 @@ export class vNode {
                     break;
             }
         }
-        this.onInject(async (node) => { node.elaborate(); });
     }
     /**Remove all references from child to itself */
     async dismiss() {
@@ -384,7 +383,7 @@ export class vNode {
                     if (temp_node) {
                         let virtual = vNode.newInstance(temp_node, node);
                         virtual.setup();
-                        virtual.elaborate(node.context);
+                        virtual.elaborate();
                         content.push(virtual);
                     }
                     temp_node = temp_node?.nextSibling;
@@ -520,6 +519,7 @@ export class vTemplate extends vNode {
         if (options && "settings" in options)
             this.updateSettings(options?.settings);
         this.createTemplate(reference, template, options);
+        this.load();
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
     createTemplate(original, template, options) {
@@ -564,7 +564,6 @@ export class vTemplate extends vNode {
     }
     async setup() {
         try {
-            this.load();
             await super.setup();
         }
         catch (ex) {

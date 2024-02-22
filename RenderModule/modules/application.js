@@ -9,15 +9,14 @@ class Application {
     name = "";
     context = {};
     vdom = undefined;
-    settings = new Settings();
+    settings = new Settings({ debug: true });
     handler = new EventHandler();
     _state = Collection.lifecycle.initialized;
     get state() { return this._state; }
     set state(value) {
         this._state = value;
-        this.handler.trigger(Collection.application_event.progress, this.current_state);
+        this.handler.trigger(Collection.application_event.progress, this.state);
     }
-    get current_state() { return Collection.lifecycle[this.state]; }
     _reactivity = {
         handler: this.handler
     };
@@ -189,26 +188,21 @@ class Application {
     defaultEvents() {
         this.onProgress((state, message) => {
             if (Support.debug(this.settings, Collection.debug_mode.message))
-                log("Application " + this.name + " changed to '" + state + (message ? " with message '" + message + "'" : ""));
+                log("Application [" + this.name + "] changed to '" + state + (message ? " with message '" + message + "'" : ""));
             switch (state) {
-                case Collection.lifecycle[Collection.lifecycle.created]:
-                    if (this.settings.debug)
+                case Collection.lifecycle.updating:
+                    if (Support.debug(this.settings, Collection.debug_mode.command))
                         console.clear();
                     break;
-                case Collection.lifecycle[Collection.lifecycle.updating]:
-                    if (this.settings.debug && this.settings.debug_mode == Collection.debug_mode.command)
-                        console.clear();
-                    break;
-                case Collection.lifecycle[Collection.lifecycle.updated]:
-                    if (this.settings.debug && this.settings.debug_mode == this.name) {
-                        console.clear();
-                        log(this.vdom, Collection.message_type.debug);
-                    }
-                    break;
-                case Collection.lifecycle[Collection.lifecycle.mounted]:
+                case Collection.lifecycle.updated:
                     if (Support.debug(this.settings, this.name)) {
+                        console.clear();
                         log(this.vdom, Collection.message_type.debug);
                     }
+                    break;
+                case Collection.lifecycle.mounted:
+                    if (Support.debug(this.settings, this.name))
+                        log(this.vdom, Collection.message_type.debug);
                     break;
             }
         });
@@ -225,10 +219,10 @@ class Application {
         }
     }
     onProgress(action) {
-        this.handler.on(Collection.application_event.progress, async function (state) { return action(Collection.lifecycle[state]); });
+        this.handler.on(Collection.application_event.progress, async function (state) { return action(state); });
     }
     onChange(action) {
-        this.handler.on(Collection.application_event.update, async function (state) { return action(Collection.lifecycle[state]); });
+        this.handler.on(Collection.application_event.update, async function (state) { return action(state); });
     }
 }
 export { Application };

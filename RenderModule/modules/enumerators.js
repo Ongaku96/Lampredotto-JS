@@ -6,11 +6,11 @@ export var Collection;
 (function (Collection) {
     let action_type;
     (function (action_type) {
-        action_type[action_type["code"] = 0] = "code";
-        action_type[action_type["link"] = 1] = "link";
-        action_type[action_type["server"] = 2] = "server";
-        action_type[action_type["email"] = 3] = "email";
-        action_type[action_type["function"] = 4] = "function";
+        action_type["code"] = "code";
+        action_type["link"] = "link";
+        action_type["server"] = "server";
+        action_type["email"] = "email";
+        action_type["function"] = "function";
     })(action_type = Collection.action_type || (Collection.action_type = {}));
     let message_type;
     (function (message_type) {
@@ -25,21 +25,21 @@ export var Collection;
     })(message_type = Collection.message_type || (Collection.message_type = {}));
     let lifecycle;
     (function (lifecycle) {
-        lifecycle[lifecycle["initialized"] = 0] = "initialized";
-        lifecycle[lifecycle["setup"] = 1] = "setup";
-        lifecycle[lifecycle["creating"] = 2] = "creating";
-        lifecycle[lifecycle["created"] = 3] = "created";
-        lifecycle[lifecycle["mounting"] = 4] = "mounting";
-        lifecycle[lifecycle["mounted"] = 5] = "mounted";
-        lifecycle[lifecycle["updating"] = 6] = "updating";
-        lifecycle[lifecycle["updated"] = 7] = "updated";
-        lifecycle[lifecycle["unmounting"] = 8] = "unmounting";
-        lifecycle[lifecycle["unmounted"] = 9] = "unmounted";
-        lifecycle[lifecycle["error"] = 10] = "error";
-        lifecycle[lifecycle["server"] = 11] = "server";
-        lifecycle[lifecycle["context_creating"] = 12] = "context_creating";
-        lifecycle[lifecycle["context_created"] = 13] = "context_created";
-        lifecycle[lifecycle["ready"] = 14] = "ready";
+        lifecycle["initialized"] = "initialized";
+        lifecycle["setup"] = "setup";
+        lifecycle["creating"] = "creating";
+        lifecycle["created"] = "created";
+        lifecycle["mounting"] = "mounting";
+        lifecycle["mounted"] = "mounted";
+        lifecycle["updating"] = "updating";
+        lifecycle["updated"] = "updated";
+        lifecycle["unmounting"] = "unmounting";
+        lifecycle["unmounted"] = "unmounted";
+        lifecycle["error"] = "error";
+        lifecycle["server"] = "server";
+        lifecycle["context_creating"] = "context_creating";
+        lifecycle["context_created"] = "context_created";
+        lifecycle["ready"] = "ready";
     })(lifecycle = Collection.lifecycle || (Collection.lifecycle = {}));
     let command;
     (function (command) {

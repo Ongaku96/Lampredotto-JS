@@ -10,29 +10,25 @@ class ApplicationBuilder {
     }
     async build(options) {
         try {
-            this.application.build(options).then(() => {
-                this.application.elaborate();
-            });
-            return this.app;
+            (await this.application.build(options)).elaborate();
+            return this.application;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
         }
         finally {
-            return this.app;
+            return this.application;
         }
     }
     async update(options) {
         try {
-            this.application.build(options).then(() => {
-                this.application.update();
-            });
+            (await this.application.build(options)).update();
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
         }
         finally {
-            return this.app;
+            return this.application;
         }
     }
     async dismiss() {

@@ -23,44 +23,44 @@ class Application {
     get reactivity() { return this._reactivity; }
     constructor(id) {
         this.defaultEvents();
-        this.state = Collection.lifecycle.creating;
         this.name = id;
-        this.virtualizeDom();
     }
     /**Build the application */
     async build(options) {
         try {
-            this.state = Collection.lifecycle.setup;
+            this.state = Collection.lifecycle.creating;
+            await this.virtualizeDom();
+            this.state = Collection.lifecycle.created;
             if (options.settings)
                 this.settings.merge(options.settings);
             this.applySettings();
             this.setupEvents(options.events);
-            return this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
+            return await this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
-            return new Promise(() => { return ex; });
+            throw ex;
         }
     }
-    virtualizeDom() {
+    async virtualizeDom() {
         let _seed = document.getElementById(this.name);
-        if (_seed != null) {
+        if (_seed != null && this.vdom == null) {
             this.vdom = vNode.newInstance(_seed, undefined);
-            this.vdom.setup().then(() => {
-                this.state = Collection.lifecycle.created;
-            });
+            await this.vdom.setup();
+            this.state = Collection.lifecycle.setup;
         }
         else {
             log("Impossible to find element with id '" + this.name + "'", Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
     }
-    elaborate() {
+    async elaborate() {
         try {
             this.state = Collection.lifecycle.mounting;
             this.vdom?.updateSettings(new Settings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters }));
-            this.vdom?.elaborate(this.context).then(() => { this.state = Collection.lifecycle.mounted; });
+            await this.vdom?.elaborate(this.context);
+            this.state = Collection.lifecycle.mounted;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -172,7 +172,6 @@ class Application {
     //#endregion
     //#region DATA
     async buildContext(dataset, actions, getters) {
-        // if (dataset.darkmode == null) dataset.darkmode = function () { View.darkmode(); }
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
             output[Collection.KeyWords.app] = this;
             output[Collection.KeyWords.node] = this.vdom;

@@ -1,0 +1,31 @@
+div[card] {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-radius: 24px;
+  background-color: #444444;
+  color: #FFFFFF;
+}
+div[card] section[header] {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+div[card] section[header] span[card-icon] {
+  margin: 8px 0;
+  color: #436A96;
+  font-size: 80px;
+}
+div[card] section[header] h2, div[card] section[header] h4 {
+  margin: 8px;
+}
+div[card] section[header] h4 {
+  opacity: 60%;
+}
+div[card] section[content] {
+  margin: 16px;
+  padding: 8px;
+}
+div[card] section[content] p {
+  margin: 0;
+}

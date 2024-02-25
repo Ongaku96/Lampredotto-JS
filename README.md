@@ -11,7 +11,7 @@ The RenderModule is designed for dynamic page rendering by defining a virtual DO
 import RenderModule from "https://cdn.jsdelivr.net/gh/Ongaku96/LAMP/RenderModule/LampRender.js";
 
 const controller = RenderEngine.instance.start("app");
-controller.build({
+await controller.build({
   dataset: {}, //data set used in the interface and within the application
   computed: {}, //dynamically defined read-only datasets while using the application
   actions: {}, //set of application functions

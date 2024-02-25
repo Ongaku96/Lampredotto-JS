@@ -26,16 +26,16 @@ class Application {
         this.name = id;
     }
     /**Build the application */
-    async build(options) {
+    async build(options = {}) {
         try {
             this.state = Collection.lifecycle.creating;
             await this.virtualizeDom();
             this.state = Collection.lifecycle.created;
-            if (options.settings)
+            if (options?.settings)
                 this.settings.merge(options.settings);
             this.applySettings();
-            this.setupEvents(options.events);
-            return await this.buildContext(options.dataset ? options.dataset : {}, options.actions, options.computed);
+            this.setupEvents(options?.events);
+            return await this.buildContext(options?.dataset ? options.dataset : {}, options?.actions, options?.computed);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);

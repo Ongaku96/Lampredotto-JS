@@ -512,7 +512,6 @@ export class vTemplate extends vNode {
     template = "";
     vtemplate_children = [];
     attributes = [];
-    slots = [];
     dataset = {};
     constructor(reference, template, options, parent) {
         super(reference, parent);
@@ -556,8 +555,6 @@ export class vTemplate extends vNode {
                 this._handler.on(event.name, event.action);
             }
         }
-        if (options?.slots)
-            this.slots = options.slots;
         this._incubator = this.getRender();
         if (!this.commandDriven)
             this.vtemplate_children = this.mapTemplatechildren(this.incubator);
@@ -668,14 +665,12 @@ export class vTemplate extends vNode {
                 _content.append(_reference.childNodes[0]);
             }
             //replace in render all 'out of template's context' children with tag
-            if (this.slots.length) {
-                for (let tag of this.slots) {
-                    let _element = _content.querySelector("*[slot='" + tag + "']");
-                    let _insider = this.incubator.querySelector("slot[name='" + tag + "']");
-                    if (_element && _insider) {
-                        _element.removeAttribute("slot");
-                        _insider.parentNode?.replaceChild(_element, _insider);
-                    }
+            var slots = this.incubator.querySelectorAll("slot");
+            for (const _slot of Array.from(slots)) {
+                var element = _content.querySelector("[slot='" + _slot.getAttribute("name") + "']");
+                if (element) {
+                    element.removeAttribute("slot");
+                    _slot.parentNode?.replaceChild(element, _slot);
                 }
             }
             while (_content.childNodes.length) {

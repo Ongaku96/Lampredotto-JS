@@ -28,7 +28,7 @@ import { defineComponent } from "https://cdn.jsdelivr.net/gh/Ongaku96/LAMP/Rende
 
 defineComponent({
   tag: "my-html-tag",
-  code: `<div></div>`,
+  code: `<html>`,
   options: {
     properties: [], //list of html attributes that inherit values from the parent virtual node
     dataset: {}, //data set used in the component
@@ -40,7 +40,36 @@ defineComponent({
 });
 
 ```
+Interaction with html elements is defined by commands inspired by Vue.js framework in terms of semantics and functionality.
+
+#### Direct dynamic rendering: 
+Using double braces you can implement inline javascript code between html tags. The code inside the double braces is interpreted as a function with return and the result is printed as a string.
+``` html
+  <div>
+    {{this.count > 0 ? "I have the high ground" : "Hello There"}}
+  <div>
+```
+
+#### Command model
+This command allows you to render an application variable or javascript code within the tag it is applied to, it also allows you to render new html code.
+``` html
+  <div cmd-model='count'><div> /** <div>0</div> **/
+  <div cmd-model='$.count + 1'><div> /** <div>1</div> **/
+```
+Il comando permette anche di sincronizzare i valori delle variabili del dataset con elementi di input.
+
+``` html
+  <input id='test_model' type='text' cmd-model='count'/> /** document.getElementById('test_model').value => '0' **/
+```
+#### Command bind
+#### Command on
+#### Command if
+#### Command for
+
+
 ### SERVER MODULE
+
+
 
 ### USER MODULE
 

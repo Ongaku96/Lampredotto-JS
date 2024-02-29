@@ -116,7 +116,7 @@ Depending on the Boolean condition set, the element will be dynamically rendered
   <!-- Hello There -->
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > The if, elseif and else commands must all be children of the same container to be considered as an instruction block.
 
 #### Command for
@@ -155,6 +155,7 @@ You can sort the order of appearance of the data with the cmd-sort command by in
 
 > [!TIP]
 > Use the desc keyword to sort in descending order
+
 > [!CAUTION]
 >The for command creates a duplicate of the application's data context before iterating the list. This results in changes from outside the command updating the rendering while changes inside the for are unresponsive.
 > The sort command affects the application data so the single sort will sort all possible iterations of the same list.

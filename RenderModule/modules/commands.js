@@ -73,7 +73,11 @@ class CommandVisitor {
             let _template = this.node.backup.cloneNode(true);
             _template.removeAttribute(cFor.key);
             _template.removeAttribute(cFor.filter_key);
-            _template.removeAttribute(cFor.sort_key);
+            let _sort = _template.getAttributeNames()?.find(a => a.includes(cFor.sort_key));
+            if (_sort)
+                _template.removeAttribute(_sort);
+            let _desc = this.readAttribute(_sort);
+            let _sort_value = _sort ? this.node.element?.getAttribute(_sort) : null;
             let _options = {
                 attribute: "",
                 modifiers: [],
@@ -81,7 +85,8 @@ class CommandVisitor {
                 value: command.attribute?.value,
                 others: {
                     filter: this.node.element?.getAttribute(cFor.filter_key),
-                    sort: this.node.element?.getAttribute(cFor.sort_key),
+                    sort: _sort_value?.replace(/desc/i, "").trim(),
+                    desc: _desc && _desc == "desc" || _sort_value?.includes("desc") ? true : false,
                     template: _template.outerHTML
                 }
             };
@@ -221,14 +226,14 @@ class CommandVisitor {
     }
     readAttribute(param) {
         let _on = param ? param?.split(":") : [];
-        if (_on.length > 0) {
+        if (_on.length > 1) {
             return _on[1].split(".")[0];
         }
         return "";
     }
     readModifiers(param) {
         let _on = param ? param.split(":") : [];
-        if (_on.length > 0) {
+        if (_on.length > 1) {
             return _on[1].split(".")?.subarray(1);
         }
         return [];
@@ -448,7 +453,7 @@ class cFor extends Command {
     render(node) {
         try {
             let _me = this;
-            let _data = this.sort(Support.getValue(node.context, this.reference), node); //getting data
+            let _data = Support.getValue(node.context, this.reference); //getting data
             if (_data != null) {
                 _data = _data.filter((e) => {
                     let index = () => {
@@ -462,6 +467,7 @@ class cFor extends Command {
                     };
                     return this.filter(node.context, index());
                 });
+                _data = this.sort(_data, node);
                 if (_data && Array.isArray(_data)) {
                     node.placeFlag((node) => {
                         oldRenderingMethod();
@@ -578,8 +584,8 @@ class cFor extends Command {
         this._backup = [];
         this.template = options.others?.template;
         this._filter = options.others?.filter;
-        this._desc = options.others?.sort?.toLowerCase().includes("desc");
-        this._sort = options.others?.sort?.replace(/desc/i, "").trim();
+        this._desc = options.others?.desc;
+        this._sort = options.others?.sort;
         let _content = options.value.split(this.separator);
         if (_content.length == 2) {
             this.alias = _content[0];
@@ -593,7 +599,8 @@ class cFor extends Command {
                 let _param = this._sort;
                 if (!(_param in data[0])) {
                     _param = renderBrackets(this._sort, node.context, node.settings);
-                    this._desc = _param.includes("desc");
+                    if (!this._desc)
+                        this._desc = _param.includes("desc");
                     _param = _param.replace(/desc/g, "").trim();
                 }
                 if (_param) {

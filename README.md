@@ -150,15 +150,14 @@ It is possible to filter the list data with the supplement of the cmd-filter com
 You can sort the order of appearance of the data with the cmd-sort command by indicating the alias of the iteration
 
 ``` html
-  <div cmd-for='item in list' cmd-sort='item desc'>{{item}},<div> <!-- Item 3, Item 2, Item 1 -->
+  <div cmd-for='item in list' cmd-sort:desc='item'>{{item}},<div> <!-- Item 3, Item 2, Item 1 -->
 ```
 
 > [!TIP]
-> Use the desc keyword to sort in descending order
+> Use the desc keyword to sort in descending order. To sort in ascending order instead, do not apply the modifier
 
 > [!CAUTION]
 >The for command creates a duplicate of the application's data context before iterating the list. This results in changes from outside the command updating the rendering while changes inside the for are unresponsive.
-> The sort command affects the application data so the single sort will sort all possible iterations of the same list.
 
 ### SERVER MODULE
 

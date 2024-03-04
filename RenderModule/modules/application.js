@@ -6,12 +6,12 @@ import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import { react, valueIsNotReactive } from "./reactive.js";
 class Application {
-    name = "";
-    context = {};
-    vdom = undefined;
-    settings = new Settings({ debug: true });
-    handler = new EventHandler();
-    _state = Collection.lifecycle.initialized;
+    name = ""; //id of application
+    context = {}; //data context
+    vdom = undefined; //virtual DOM
+    settings = new Settings({ debug: true }); //Application settings
+    handler = new EventHandler(); //events collector
+    _state = Collection.lifecycle.initialized; //application state
     get state() { return this._state; }
     set state(value) {
         this._state = value;
@@ -20,21 +20,26 @@ class Application {
     _reactivity = {
         handler: this.handler
     };
-    get reactivity() { return this._reactivity; }
+    get reactivity() { return this._reactivity; } //Proxy rules set
     constructor(id) {
         this.defaultEvents();
         this.name = id;
     }
+    //#region LIFECYCLE
+    /**Create a linked virtual version of HTML DOM */
+    async virtualize() {
+        this.state = Collection.lifecycle.creating;
+        await this.virtualizeDom();
+        this.state = Collection.lifecycle.created;
+    }
     /**Build the application */
     async build(options = {}) {
         try {
-            this.state = Collection.lifecycle.creating;
-            await this.virtualizeDom();
-            this.state = Collection.lifecycle.created;
-            if (options?.settings)
+            if (options && options?.settings)
                 this.settings.merge(options.settings);
             this.applySettings();
-            this.setupEvents(options?.events);
+            if (options && options.events)
+                this.setupEvents(...options.events);
             return await this.buildContext(options?.dataset ? options.dataset : {}, options?.actions, options?.computed);
         }
         catch (ex) {
@@ -43,6 +48,7 @@ class Application {
             throw ex;
         }
     }
+    /**Create a linked virtual version of HTML DOM */
     async virtualizeDom() {
         let _seed = document.getElementById(this.name);
         if (_seed != null && this.vdom == null) {
@@ -55,6 +61,7 @@ class Application {
             this.state = Collection.lifecycle.error;
         }
     }
+    /**First application's virtual DOM render*/
     async elaborate() {
         try {
             this.state = Collection.lifecycle.mounting;
@@ -70,6 +77,7 @@ class Application {
             this.handler.trigger(Collection.application_event.render, this);
         }
     }
+    /**Update rendering */
     update() {
         try {
             this.state = Collection.lifecycle.updating;
@@ -83,14 +91,17 @@ class Application {
             this.handler.trigger(Collection.application_event.render, this);
         }
     }
-    dismiss() {
+    /**Reset virtualization */
+    async dismiss() {
         this.state = Collection.lifecycle.unmounting;
-        this.vdom?.dismiss();
-        this.vdom = undefined;
+        await this.vdom?.dismiss();
         this.context = {};
+        this.settings = new Settings({ debug: true });
         this.state = Collection.lifecycle.unmounted;
     }
+    //#endregion
     //#region SETTINGS
+    /**Setup global settings for interface and format*/
     applySettings() {
         if (this.settings.interface?.palette) {
             for (const c of this.settings.interface?.palette) {
@@ -164,6 +175,7 @@ class Application {
         }
         document.body.setAttribute("theme", this.settings.interface?.darkmode ? "dark" : "");
     }
+    /**Update interface settings */
     updateSettings(settings) {
         if (settings.interface)
             this.settings.interface = settings.interface;
@@ -171,19 +183,25 @@ class Application {
     }
     //#endregion
     //#region DATA
+    /**Define unique data context from options */
     async buildContext(dataset, actions, getters) {
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
-            output[Collection.KeyWords.app] = this;
-            output[Collection.KeyWords.node] = this.vdom;
-            output[Collection.KeyWords.reference] = this.vdom?.firstChild;
+            output[Collection.KeyWords.app] = this; //in-context virtual node reference shortcut
+            output[Collection.KeyWords.node] = this.vdom; //in-context application reference
+            output[Collection.KeyWords.reference] = this.vdom?.firstChild; //in-context html node reference
             if (valueIsNotReactive(output))
                 output = react(output, this.reactivity);
             this.context = output;
             return this;
         });
     }
+    /**Reset data context */
+    resetContext() {
+        this.context = {};
+    }
     //#endregion
     //#region EVENTS
+    /**setup default events triggers */
     defaultEvents() {
         this.onProgress((state, message) => {
             if (Support.debug(this.settings, Collection.debug_mode.message))
@@ -209,7 +227,8 @@ class Application {
             this.vdom?.update();
         });
     }
-    setupEvents(events) {
+    /**Add events */
+    setupEvents(...events) {
         if (events) {
             let _me = this;
             for (let evt of events) {
@@ -217,9 +236,11 @@ class Application {
             }
         }
     }
+    /**Set on state change event action*/
     onProgress(action) {
         this.handler.on(Collection.application_event.progress, async function (state) { return action(state); });
     }
+    /**Set on data context change event action*/
     onChange(action) {
         this.handler.on(Collection.application_event.update, async function (state) { return action(state); });
     }

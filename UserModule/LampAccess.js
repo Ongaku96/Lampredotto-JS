@@ -2,15 +2,19 @@ import { User } from "./modules/user.js";
 export default class UserHandler {
     session_key = "active_user";
     static _default = null;
+    /**Singleton instance of user handler */
     static get instance() {
         if (this._default == null)
             this._default = new UserHandler();
         return this._default;
     }
-    _events;
-    _logged_user;
+    _events; //events collector
+    _logged_user; //current user
+    /**Get current user */
     get logged() { return this._logged_user != null; }
+    /**Get current user stored data */
     get user() { return this._logged_user?.data; }
+    /**Get current user stored settings */
     get settings() { return this._logged_user?.settings; }
     constructor() {
         this._events = [
@@ -19,10 +23,10 @@ export default class UserHandler {
             { name: "error" }
         ];
     }
+    /**Login function store new user's data and settings in local storage altought it refresh existing user's data and save it in session storage and trigger login event*/
     login(id, data, settings) {
         try {
-            this.refreshUser(id, data);
-            if (!this.logged) {
+            if (!this.refreshUser(id, data)) {
                 this._logged_user = new User(id, data, settings || {});
                 this._logged_user?.save();
             }
@@ -34,6 +38,7 @@ export default class UserHandler {
             console.log("LAMP ACCESS: " + ex);
         }
     }
+    /** */
     logout() {
         try {
             this._logged_user = undefined;
@@ -77,11 +82,13 @@ export default class UserHandler {
     refreshUser(id, data) {
         try {
             this._logged_user = User.retrive(id, data);
+            return this._logged_user != null;
         }
         catch (ex) {
             this.triggerEvent("error", ex);
             console.log("LAMP ACCESS: " + ex);
         }
+        return false;
     }
     triggerEvent(name, arg) {
         try {

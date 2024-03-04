@@ -5,6 +5,7 @@ import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
 import log from "./console.js";
+/**Virtualized Node */
 export class vNode {
     /**Return new instance of virtual node */
     static newInstance(reference, parent) {
@@ -80,6 +81,7 @@ export class vNode {
         this._parent = parent;
         this.create(original);
     }
+    //#region LIFECYCLE
     /**Initialization of virtual node
      *  - store commands
      *  - define staticness
@@ -140,7 +142,7 @@ export class vNode {
         try {
             await this.elaborateContext(context);
             await this.render();
-            this.onInject(async (node) => { node.elaborate(); });
+            this.onInject(async (node) => { node.elaborate(this._handler.Context); });
             await this.elaborateChildren();
             this.state = Collection.lifecycle.mounted;
             this.state = Collection.lifecycle.ready;
@@ -151,7 +153,7 @@ export class vNode {
             this.state = Collection.lifecycle.error;
         }
     }
-    /**Update node and node's child rendering */
+    /**Update node and node's children rendering */
     async update() {
         this.state = Collection.lifecycle.updating;
         try {
@@ -219,6 +221,7 @@ export class vNode {
             log(ex, Collection.message_type.error);
         }
     }
+    //#endregion
     //#region ELABORATION
     /**Conteol presence of commands attributes and store them in commands archive */
     checkCommands(element) {
@@ -260,7 +263,7 @@ export class vNode {
         this._handler.setContext(this.context);
         this._handler.trigger(Collection.node_event.dataset, this.context);
     }
-    /**Update node settings and children settings in cascade*/
+    /**Update node settings and children settings*/
     updateSettings(settings) {
         if (settings != null) {
             this.settings.merge(settings);
@@ -507,12 +510,13 @@ export class vNode {
         return this.isElement && isChild(this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
     }
 }
-/**virtual node for templates */
+/**vTemplate is the vDOM rappresentation of Components, it is an extension of vNode but with some semi-independant application features*/
 export class vTemplate extends vNode {
-    template = "";
-    vtemplate_children = [];
+    template = ""; // component's html code
+    vtemplate_children = []; //component's vDOM children only
     attributes = [];
-    dataset = {};
+    ; //component's paramters
+    dataset = {}; //base dataset for context
     constructor(reference, template, options, parent) {
         super(reference, parent);
         if (options && "settings" in options)
@@ -521,6 +525,7 @@ export class vTemplate extends vNode {
         this.load();
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
+    /**Prepare template data for processing */
     createTemplate(original, template, options) {
         this.template = template;
         this.dataset = {
@@ -528,6 +533,69 @@ export class vTemplate extends vNode {
             actions: options?.actions,
             computed: options?.computed
         };
+        this.setupAttributes(options, original);
+        this.setupEvents(options);
+        this._incubator = this.getRender();
+        if (!this.commandDriven)
+            this.vtemplate_children = this.mapTemplatechildren(this.incubator);
+    }
+    /**Elaborate template's document fragment */
+    getRender() {
+        return Support.templateFromString(this.template);
+    }
+    /**Elaborate complete template replacement */
+    load() {
+        try {
+            //Collecting all non commands and out of dataset attributes of custom tag
+            let _attributes = [];
+            if (this.element) {
+                for (const item of this.element?.getAttributeNames()) {
+                    if (!this.attributes.find(a => a.prop == item) && command_matches.find(k => item.match(k.key)) == null) {
+                        _attributes.push(item);
+                    }
+                }
+            }
+            let _content = document.createDocumentFragment(); //create container for 'out of template's context' items collectionù
+            //Get 'out of template's context' children
+            let _reference = this.reference[0];
+            while (_reference.childNodes.length) {
+                _content.append(_reference.childNodes[0]);
+            }
+            //replace in render all 'out of template's context' children with tag
+            var slots = this.incubator.querySelectorAll("slot");
+            for (const _slot of Array.from(slots)) {
+                var element = _content.querySelector("[slot='" + _slot.getAttribute("name") + "']");
+                if (element) {
+                    element.removeAttribute("slot");
+                    _slot.parentNode?.replaceChild(element, _slot);
+                }
+            }
+            while (_content.childNodes.length) {
+                this.incubator.firstChild?.appendChild(_content.childNodes[0]);
+            }
+            //Copying all extra custom tag's attributes on first render child node if it is a Node Element
+            if (this.incubator.firstChild?.nodeType == Node.ELEMENT_NODE) {
+                let _element = this.incubator.firstChild;
+                for (const attr of _attributes) {
+                    _element.setAttribute(attr, (_element.hasAttribute(attr) ? _element.getAttribute(attr) + " " : "") + this.element?.getAttribute(attr));
+                }
+            }
+            //this._handler.trigger(Collection.node_event.render, this.incubator, this);
+            this.incubator.querySelectorAll("ref").forEach(e => e.remove());
+            this.replaceNodes();
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+    }
+    setupEvents(options) {
+        if (options?.events) {
+            for (let event of options.events) {
+                this._handler.on(event.name, event.action);
+            }
+        }
+    }
+    setupAttributes(options, original) {
         if (options?.properties) {
             let _attributes = original.getAttributeNames();
             for (const attr of options.properties) {
@@ -550,14 +618,6 @@ export class vTemplate extends vNode {
                 }
             }
         }
-        if (options?.events) {
-            for (let event of options.events) {
-                this._handler.on(event.name, event.action);
-            }
-        }
-        this._incubator = this.getRender();
-        if (!this.commandDriven)
-            this.vtemplate_children = this.mapTemplatechildren(this.incubator);
     }
     async setup() {
         try {
@@ -581,6 +641,8 @@ export class vTemplate extends vNode {
             log(ex, Collection.message_type.error);
         }
     }
+    /**Like the application's relative method, it defines a unique data context,
+     * but the passed variable's proxy is linked to the relative in the parent context instead of updating all vdom. */
     async buildContext() {
         this.state = Collection.lifecycle.context_creating;
         let _update;
@@ -630,10 +692,6 @@ export class vTemplate extends vNode {
             this._handler.trigger(Collection.node_event.dataset, template_context);
         });
     }
-    /**Elaborate template's document fragment */
-    getRender() {
-        return Support.templateFromString(this.template);
-    }
     /**Elaborate template's virtual nodes  */
     mapTemplatechildren(render) {
         let _children = [];
@@ -646,51 +704,6 @@ export class vTemplate extends vNode {
         }
         return _children;
     }
-    /**Elaborate complete template replacement */
-    load() {
-        try {
-            //Collecting all non commands and out of dataset attributes of custom tag
-            let _attributes = [];
-            if (this.element) {
-                for (const item of this.element?.getAttributeNames()) {
-                    if (!this.attributes.find(a => a.prop == item) && command_matches.find(k => item.match(k.key)) == null) {
-                        _attributes.push(item);
-                    }
-                }
-            }
-            let _content = document.createDocumentFragment(); //create container for 'out of template's context' items collectionù
-            //Get 'out of template's context' children
-            let _reference = this.reference[0];
-            while (_reference.childNodes.length) {
-                _content.append(_reference.childNodes[0]);
-            }
-            //replace in render all 'out of template's context' children with tag
-            var slots = this.incubator.querySelectorAll("slot");
-            for (const _slot of Array.from(slots)) {
-                var element = _content.querySelector("[slot='" + _slot.getAttribute("name") + "']");
-                if (element) {
-                    element.removeAttribute("slot");
-                    _slot.parentNode?.replaceChild(element, _slot);
-                }
-            }
-            while (_content.childNodes.length) {
-                this.incubator.firstChild?.appendChild(_content.childNodes[0]);
-            }
-            //Copying all extra custom tag's attributes on first render child node if it is a Node Element
-            if (this.incubator.firstChild?.nodeType == Node.ELEMENT_NODE) {
-                let _element = this.incubator.firstChild;
-                for (const attr of _attributes) {
-                    _element.setAttribute(attr, (_element.hasAttribute(attr) ? _element.getAttribute(attr) + " " : "") + this.element?.getAttribute(attr));
-                }
-            }
-            //this._handler.trigger(Collection.node_event.render, this.incubator, this);
-            this.incubator.querySelectorAll("ref").forEach(e => e.remove());
-            this.replaceNodes();
-        }
-        catch (ex) {
-            log(ex, Collection.message_type.error);
-        }
-    }
     async setupChildren() {
         return super.setupChildren().then(() => {
             var _setup = [];
@@ -701,6 +714,8 @@ export class vTemplate extends vNode {
             return Promise.all(_setup);
         });
     }
+    /**Processes the children of the component using its personal context
+     * and injected children with the inherited context  */
     async elaborateChildren() {
         return super.elaborateChildren().then(() => {
             var _elabs = [];

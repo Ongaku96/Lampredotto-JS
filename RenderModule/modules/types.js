@@ -2,16 +2,21 @@ import "./global.js";
 import { Collection } from "./enumerators.js";
 import { Support } from "./library.js";
 import log from "./console.js";
+/**Application interaction management */
 class ApplicationBuilder {
     application;
     get app() { return this.application; }
     constructor(application) {
         this.application = application;
     }
-    async build(options) {
+    /**Virtualize DOM and render data on page */
+    build(options = {}) {
         try {
-            (await this.application.build(options)).elaborate();
-            return this.application;
+            this.application.virtualize().then(() => {
+                this.application.build(options).then(() => {
+                    this.application.elaborate();
+                });
+            });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -20,9 +25,12 @@ class ApplicationBuilder {
             return this.application;
         }
     }
-    async update(options) {
+    /**Update dataset and refresh render */
+    update(options) {
         try {
-            (await this.application.build(options)).update();
+            this.application.build(options).then(() => {
+                this.application.update();
+            });
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -31,8 +39,17 @@ class ApplicationBuilder {
             return this.application;
         }
     }
-    async dismiss() {
-        this.application.dismiss();
+    /**Remove rendering and reset dataset */
+    dismiss() {
+        try {
+            this.application.dismiss();
+        }
+        catch (ex) {
+            log(ex, Collection.message_type.error);
+        }
+        finally {
+            return this.application;
+        }
     }
 }
 /**Represent a dynamic action that can be bound to an event and converted to json*/

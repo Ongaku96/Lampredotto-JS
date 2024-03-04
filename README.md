@@ -162,7 +162,7 @@ You can sort the order of appearance of the data with the cmd-sort command by in
 ### SERVER MODULE
 
 - [x] stable version
-- [ ] to comment on
+- [X] to comment on
 - [ ] to be documented
 
 ### USER MODULE

@@ -117,7 +117,7 @@ export default class Service {
                     if (response.ok) {
                         let _content = await response.json();
                         if (_view)
-                            "virtual" in _view ? _view.virtual.replaceHtmlContent(_content) : _view.innerHTML = _content;
+                            "virtual" in _view ? _view.virtual.replaceHtmlContent(_content) : _view.outerHTML = _content;
                         if (success_callback)
                             success_callback(new Response(JSON.stringify(response)));
                     }

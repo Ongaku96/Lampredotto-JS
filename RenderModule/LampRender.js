@@ -43,9 +43,49 @@ export default class RenderEngine {
         return new ApplicationBuilder(new Application(id));
     }
 }
+/**Define new Component by template*/
 export function defineComponent(template, style) {
-    setupComponent(template.tag, template.code, template.options);
-    if (style) {
+    setupComponent(template.tag, template.code, template.options || {});
+    if (style)
         styleComponent(style);
+}
+/**Get Component elaborated from server */
+export function serverComponent(url, timeoutConnection = 30000) {
+    const request = () => {
+        let controller = new AbortController();
+        setTimeout(() => { controller.abort(); }, timeoutConnection);
+        return fetch(url, {
+            method: "GET",
+            mode: "cors",
+            cache: "no-cache",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application-json",
+            },
+            redirect: "follow",
+            referrerPolicy: "no-referrer",
+            signal: controller.signal,
+        });
+    };
+    try {
+        return request().then((response) => {
+            if (response.ok) {
+                response.json().then((template) => {
+                    if ("tag" in template && "code" in template)
+                        defineComponent(template);
+                    else
+                        log(`Impossible to define as component: ${JSON.stringify(template)}`, Collection.message_type.warning);
+                });
+            }
+            else {
+                log(response.text, Collection.message_type.server_error);
+                throw response;
+            }
+            return response;
+        });
+    }
+    catch (ex) {
+        log(ex, Collection.message_type.error);
+        throw ex;
     }
 }

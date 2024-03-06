@@ -163,12 +163,14 @@ You can sort the order of appearance of the data with the cmd-sort command by in
 
 - [x] stable version
 - [X] to comment on
+- [ ] to be tested
 - [ ] to be documented
 
 ### USER MODULE
 
 - [x] stable version
 - [ ] to comment on
+- [ ] to be tested
 - [ ] to be documented
 
 ## WHY LAMPREDOTTO JS

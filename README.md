@@ -2,7 +2,7 @@
 
 # LAMPREDOTTO JS
 
-Lampredotto JS is a set of specialised Javascript modules useful in the realisation of a Fron End project.
+Lampredotto JS is a set of specialised Javascript modules useful in the realisation of a Front End project.
 
 ### RENDER MODULE
 

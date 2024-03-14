@@ -4,7 +4,7 @@ export default class Service {
     static _instance = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
     static get instance() {
-        if (this.instance == null)
+        if (this._instance == null)
             this._instance = new Service(new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, 30000); }));
         return this._instance;
     }

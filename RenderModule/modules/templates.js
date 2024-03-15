@@ -1,7 +1,7 @@
-function setup(tag, template, options) {
+function setup(selector, template, options) {
     if (globalThis.my_components == null)
         globalThis.my_components = [];
-    my_components.push({ name: tag, template: template, options: options });
+    my_components.push({ name: selector, template: template, options: options });
 }
 function style(css) {
     let style = new CSSStyleSheet();

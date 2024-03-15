@@ -44,10 +44,17 @@ export default class RenderEngine {
     }
 }
 /**Define new Component by template*/
-export function defineComponent(template, style) {
-    setupComponent(template.tag, template.code, template.options || {});
-    if (style)
+export function defineComponent(component) {
+    var templateString = "";
+    var styleString = component.styles || [];
+    if (component.templatePath) {
+        fetch(component.templatePath).then(response => response.text()).then((data) => { templateString = data; });
+    }
+    setupComponent(component.selector, component.template || templateString, component.options || {});
+    for (const style of styleString) {
         styleComponent(style);
+    }
+    ;
 }
 /**Get Component elaborated from server */
 export function serverComponent(url, timeoutConnection = 30000) {

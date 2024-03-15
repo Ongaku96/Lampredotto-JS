@@ -1,7 +1,7 @@
 import { defineComponent } from "../LampRender.js";
 defineComponent({
-    tag: "lamp-block",
-    code: `<div block></div>`
+    selector: "lamp-block",
+    template: `<div block></div>`
 }, `div[block] {
         display: flex;
         flex-direction: row;

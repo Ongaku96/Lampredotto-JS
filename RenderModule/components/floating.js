@@ -1,7 +1,7 @@
 import { defineComponent } from "../LampRender.js";
 defineComponent({
-    tag: "float-container",
-    code: `<div float-container='hide'></div>`
+    selector: "float-container",
+    template: `<div float-container='hide'></div>`
 }, `*[floating-item] {
         display: none;
         position: fixed;

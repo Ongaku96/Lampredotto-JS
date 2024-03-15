@@ -25,13 +25,16 @@ await controller.build({
 
 #### How to define a Component
 
-```javascript
+```typescript
 import { defineComponent } from "https://cdn.jsdelivr.net/gh/Ongaku96/LAMP/RenderModule/LampRender.js";
 
 defineComponent({
-  tag: "my-html-tag",
-  code: `<html>`,
-  options: {
+  selector: string,
+  template?: string,
+  templatePath?: string,
+  styles?: string[],
+  stylesPath?: string,
+  options?: {
     properties: [], //list of html attributes that inherit values from the parent virtual node
     dataset: {}, //data set used in the component
     computed: {}, //dynamically defined read-only datasets while using the component
@@ -39,6 +42,7 @@ defineComponent({
     events: [], //trigger of component events
     settings: {}, //component's settings
   },
+  class?: object //NOT SUPPORTED YET
 });
 
 ```

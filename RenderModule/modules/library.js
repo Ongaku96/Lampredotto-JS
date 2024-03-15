@@ -205,6 +205,10 @@ export var Support;
             template_text = template_text.trim();
             let _template = document.createElement("template");
             _template.innerHTML = template_text;
+            let _inner_template = _template.querySelector("template");
+            if (_inner_template) {
+                _template.innerHTML = _inner_template.innerHTML;
+            }
             return _template.content;
         }
         catch (ex) {

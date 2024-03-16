@@ -1,86 +1,93 @@
 import { Support } from "./library.js";
-import { Settings } from "./types.js";
+import { DataCollection, QueryElement, ReactivityOptions, Settings, TemplateOptions, UpdateOptions } from "./types.js";
 import { Collection, command_matches } from "./enumerators.js";
-import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
+import { Application } from "./application.js";
+import { Command, CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
 import log from "./console.js";
+
 /**Virtualized Node */
 export class vNode {
     /**Return new instance of virtual node */
-    static newInstance(reference, parent) {
+    static newInstance(reference: Node, parent?: vNode) {
         let _component = globalThis.my_components?.find(c => c.name.toUpperCase() == reference.nodeName.toUpperCase());
         return _component != null ? new vTemplate(reference, _component.template, _component.options, parent) : new vNode(reference, parent);
     }
+
     //#region PUBLIC
     /**virtual node identifier */
-    id;
+    public id: string;
     /**original html node element */
-    backup;
+    public backup: Node;
     /**Get if node element have dynamic elements or not */
-    static;
+    public static: boolean;
     /**Data context of node */
-    context = {};
+    public context: DataCollection = {};
     /**Settings of node */
-    settings = new Settings();
+    public settings: Settings = new Settings();
     //#endregion
+
     //#region PRIVATE
-    _handler = new EventHandler(this.context); //events utility management
-    _incubator = document.createDocumentFragment(); //node's space for rendering elaboration
-    _reference = []; //node reference
-    _commands = []; //list of framework commands stored in virtual Node
-    _command_visitor = new CommandVisitor(this); //commands Visitor for interaction
-    _state = Collection.lifecycle.initialized; //private node state store
-    _children = []; //virtual children
-    _flag = null; //flag comment in html for elaboration reference
-    _parent;
+    protected _handler: EventHandler = new EventHandler(this.context); //events utility management
+    protected _incubator: DocumentFragment = document.createDocumentFragment(); //node's space for rendering elaboration
+    protected _reference: Node[] = []; //node reference
+    protected _commands: Command[] = []; //list of framework commands stored in virtual Node
+    protected _command_visitor: CommandVisitor = new CommandVisitor(this); //commands Visitor for interaction
+    protected _state: Collection.lifecycle = Collection.lifecycle.initialized; //private node state store
+    protected _children: vNode[] = []; //virtual children
+    protected _flag: Comment | null = null; //flag comment in html for elaboration reference
+    protected _parent: vNode | undefined;
     //#endregion
+
     //#region PROPERTIES
-    set state(value) {
+    set state(value: Collection.lifecycle) {
         this._state = value;
         this._handler.trigger(Collection.node_event.progress, this.state);
     }
     /**State of node's elaboration */
-    get state() { return this._state; }
-    get isElement() { return this.backup.nodeType == Node.ELEMENT_NODE; }
+    get state(): Collection.lifecycle { return this._state; }
+    get isElement(): boolean { return this.backup.nodeType == Node.ELEMENT_NODE }
     /**Original element in case node is HTML Element */
-    get element() { return this.isElement ? this.backup : null; }
+    get element(): HTMLElement | null { return this.isElement ? <HTMLElement>this.backup : null; }
     /**Node's children */
-    get children() { return this._children; }
+    get children(): vNode[] { return this._children; }
     /**Reference for elaboration space */
-    get incubator() { return this._incubator; }
+    get incubator(): DocumentFragment { return this._incubator; }
     /**Reference container */
-    get reference() { return this._reference; }
+    get reference(): Node[] { return this._reference; }
     /**Reference container */
-    get firstChild() { return this._reference[0] || undefined; }
+    get firstChild(): Node | undefined { return this._reference[0] || undefined; }
     /**Type of node */
-    get nodeType() { return this.backup.nodeType; }
+    get nodeType(): Number { return this.backup.nodeType; }
     /**Node name */
-    get nodeName() { return this.backup.nodeName; }
+    get nodeName(): string { return this.backup.nodeName; }
     /**Get if vnode has commands that drive node rendering like loop or conditional commands */
-    get commandDriven() { return this._commands.find(c => c instanceof cIf || c instanceof cFor) != null; }
+    get commandDriven(): boolean { return this._commands.find(c => c instanceof cIf || c instanceof cFor) != null; }
     /**temporary vnode's reference on DOM  */
-    get flag() {
-        if (this._flag == null)
-            this._flag = document.createComment("#NODE " + this.id);
+    get flag(): Comment {
+        if (this._flag == null) this._flag = document.createComment("#NODE " + this.id);
         return this._flag;
     }
     /**Parent virtual node */
-    get parent() { return this._parent; }
+    get parent(): vNode | undefined { return this._parent; }
     /**Get if node is application root */
-    get root() { return this.parent == null; }
+    get root(): boolean { return this.parent == null; }
     /**Get this application root virtual node */
-    get application() { return this.parent?.context.__app || undefined; }
+    get application(): Application | undefined { return this.parent?.context.__app || undefined; }
     //#endregion
-    constructor(original, parent) {
+
+    constructor(original: Node, parent?: vNode) {
         this.id = Support.uniqueID();
         this.updateSettings(this.parent?.settings);
         this.state = Collection.lifecycle.creating;
         this.backup = original.cloneNode(true);
         this.static = false;
         this._parent = parent;
+
         this.create(original);
     }
+
     //#region LIFECYCLE
     /**Initialization of virtual node
      *  - store commands
@@ -88,20 +95,21 @@ export class vNode {
      *  - map children
      *  - define vnode's reference
      */
-    create(original) {
+    protected create(original: Node) {
         try {
             if (original.nodeType == Node.ELEMENT_NODE) {
-                this.checkCommands(original);
+                this.checkCommands(<HTMLElement>original);
                 if (!this.commandDriven)
-                    this.mapChildren(original);
+                    this.mapChildren(<HTMLElement>original);
             }
             this.static = this.checkIfStatic();
             original.virtual = this;
             this.reference.push(original);
+
             this.state = Collection.lifecycle.created;
+
             this._handler.trigger(Collection.node_event.virtualized, this);
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
@@ -113,42 +121,37 @@ export class vNode {
             if (!this.static) {
                 this.incubator.appendChild(this.backup.cloneNode(false));
                 for (let comm of this._commands) {
-                    if (comm instanceof cModel)
-                        this._command_visitor.visitModel(comm);
-                    if (comm instanceof cOn)
-                        this._command_visitor.visitOn(comm);
-                    if (comm instanceof cBind)
-                        this._command_visitor.visitBind(comm);
-                    if (comm instanceof cIf)
-                        this._command_visitor.visitIf(comm);
-                    if (comm instanceof cFor)
-                        this._command_visitor.visitFor(comm);
+                    if (comm instanceof cModel) this._command_visitor.visitModel(comm);
+                    if (comm instanceof cOn) this._command_visitor.visitOn(comm);
+                    if (comm instanceof cBind) this._command_visitor.visitBind(comm);
+                    if (comm instanceof cIf) this._command_visitor.visitIf(comm);
+                    if (comm instanceof cFor) this._command_visitor.visitFor(comm);
                 }
             }
             await this.setupChildren();
             this._handler.trigger(Collection.node_event.setup, this._commands);
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
     }
     /**First elaboration of node, context definition and rendering  */
-    async elaborate(context) {
+    async elaborate(context?: DataCollection) {
         this.state = Collection.lifecycle.mounting;
+
         if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
-            this.reference[0].setAttribute("data-id", this.id);
+            (<Element>this.reference[0]).setAttribute("data-id", this.id);
         }
+
         try {
             await this.elaborateContext(context);
             await this.render();
-            this.onInject(async (node) => { node.elaborate(this._handler.Context); });
+            this.onInject(async (node: vNode) => { node.elaborate(this._handler.Context); });
             await this.elaborateChildren();
             this.state = Collection.lifecycle.mounted;
             this.state = Collection.lifecycle.ready;
             this._handler.trigger(Collection.node_event.render, this.firstChild);
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
@@ -162,8 +165,7 @@ export class vNode {
             this.state = Collection.lifecycle.updated;
             this.state = Collection.lifecycle.ready;
             this._handler.trigger(Collection.node_event.render, this.firstChild);
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
@@ -174,15 +176,11 @@ export class vNode {
             switch (this.nodeType) {
                 case Node.ELEMENT_NODE:
                     if (this._commands.find(c => c instanceof cIf) != null) {
-                        this._commands.forEach(c => { if (c instanceof cIf)
-                            c.render(this); });
-                    }
-                    else {
+                        this._commands.forEach(c => { if (c instanceof cIf) c.render(this); });
+                    } else {
                         if (this._commands.find(c => c instanceof cFor) != null) {
-                            this._commands.forEach(c => { if (c instanceof cFor)
-                                c.render(this); });
-                        }
-                        else {
+                            this._commands.forEach(c => { if (c instanceof cFor) c.render(this); });
+                        } else {
                             for (let comm of this._commands) {
                                 comm.render(this);
                             }
@@ -211,20 +209,20 @@ export class vNode {
             if (this.reference.length) {
                 for (var element of this.reference) {
                     if (element.nodeType == Node.ELEMENT_NODE) {
-                        element.remove();
+                        (<Element>element).remove();
                     }
                 }
             }
             this.state = Collection.lifecycle.unmounted;
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     //#endregion
+
     //#region ELABORATION
     /**Conteol presence of commands attributes and store them in commands archive */
-    checkCommands(element) {
+    protected checkCommands(element: HTMLElement) {
         try {
             let _attributes = element.attributes; //get list of node attributes
             for (let attr of Array.from(_attributes)) {
@@ -233,20 +231,19 @@ export class vNode {
                     this._commands.push(_key.value.clone(attr));
                 }
             }
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
     /**Check if node has dynamic elements */
-    checkIfStatic() {
+    protected checkIfStatic() {
         if (this.backup.nodeType == Node.ELEMENT_NODE) {
             return this._commands.length == 0 && !checkDynamicAttribute(this.element);
-        }
-        else {
+        } else {
             return this.backup.nodeValue?.match(Collection.regexp.brackets) == null;
         }
-        function checkDynamicAttribute(element) {
+
+        function checkDynamicAttribute(element: HTMLElement | null) {
             if (element && "attributes" in element) {
                 for (let attr of Array.from(element.attributes)) {
                     if (attr.nodeValue?.match(Collection.regexp.brackets)) {
@@ -258,45 +255,48 @@ export class vNode {
         }
     }
     /**Setup Node's context */
-    async elaborateContext(context) {
+    protected async elaborateContext(context?: DataCollection) {
         this.context = context || this.parent?.context || {};
         this._handler.setContext(this.context);
         this._handler.trigger(Collection.node_event.dataset, this.context);
     }
     /**Update node settings and children settings*/
-    updateSettings(settings) {
+    updateSettings(settings: Settings | undefined) {
         if (settings != null) {
             this.settings.merge(settings);
+
             for (const child of this.children) {
                 child.updateSettings(settings);
             }
         }
     }
     //#endregion
+
     //#region EVENTS
     /**Define events on state's changes */
-    onProgress(action) {
+    onProgress(action: (...args: any[]) => any) {
         this._handler.on(Collection.node_event.progress, action);
     }
-    onInject(action) {
+    onInject(action: (...args: any[]) => any) {
         this._handler.on(Collection.node_event.inject, action);
     }
-    onDataset(action) {
+    onDataset(action: (...args: any[]) => any) {
         this._handler.on(Collection.node_event.dataset, action);
     }
-    trigger(name, ...args) {
+    trigger(name: string, ...args: any[]) {
         this._handler.trigger(name, ...args);
     }
-    on(name, action) {
-        this._handler.on(name, action);
+    on(name: string, action: (...args: any[]) => any | void) {
+        this._handler.on(name, action)
     }
     //#endregion
+
     //#region HTML
     /**Inject element as last children */
-    append(node, index = 0) {
+    append(node: Node, index: number = 0) {
         try {
             if (this.reference[index] && this.reference[index].nodeType == Node.ELEMENT_NODE) {
-                this.reference[index].append(node);
+                (<HTMLElement>this.reference[index]).append(node);
                 let _node = vNode.newInstance(node, this);
                 _node.updateSettings(this.settings);
                 _node.setup();
@@ -307,16 +307,15 @@ export class vNode {
             else {
                 log("Impossible to append at " + this.id + " node cause it is not an Element Node", Collection.message_type.warning);
             }
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     /**Inject new element as first children */
-    prepend(node, index = 0) {
+    prepend(node: HTMLElement, index: number = 0) {
         try {
             if (this.reference[index] && this.reference[index].nodeType == Node.ELEMENT_NODE) {
-                this.reference[index].prepend(node);
+                (<HTMLElement>this.reference[index]).prepend(node);
                 let _node = vNode.newInstance(node, this);
                 _node.updateSettings(this.settings);
                 _node.setup();
@@ -327,13 +326,12 @@ export class vNode {
             else {
                 log("Impossible to prepend at " + this.id + " node cause it is not an Element Node", Collection.message_type.warning);
             }
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     /**Replace first reference DOM element with another */
-    replaceWith(node) {
+    replaceWith(node: Node) {
         try {
             let _virtual = vNode.newInstance(node, this);
             _virtual.updateSettings(this.settings);
@@ -345,8 +343,7 @@ export class vNode {
                 _parent.virtual?.replaceChild(_virtual);
                 _parent.virtual?.trigger(Collection.node_event.inject, _virtual);
             }
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
@@ -357,31 +354,30 @@ export class vNode {
                 if (node.reference.length) {
                     // (<HTMLElement>node.reference[node.reference.length - 1]).after(node.flag);
                     for (let ref of node.reference) {
-                        ref.remove();
+                        (<HTMLElement>ref).remove();
                     }
                     node._reference = [];
                 }
                 if (node.incubator.childNodes.length) {
                     for (let newnode of Array.from(node.incubator.childNodes)) {
-                        node.flag.before(newnode);
+                        node.flag.before(newnode)
                         node.reference.push(newnode);
                     }
                     return true;
                 }
                 return false;
             }, true);
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     /**Replace reference node with a given html template*/
-    replaceHtmlContent(new_content) {
+    replaceHtmlContent(new_content: string) {
         try {
             this.placeFlag((node) => {
                 node.incubator.textContent = "";
                 let content = [];
-                let temp_node = Support.templateFromString(new_content).firstChild;
+                let temp_node: ChildNode | null | undefined = Support.templateFromString(new_content).firstChild;
                 do {
                     if (temp_node) {
                         let virtual = vNode.newInstance(temp_node, node);
@@ -390,36 +386,39 @@ export class vNode {
                         content.push(virtual);
                     }
                     temp_node = temp_node?.nextSibling;
-                } while (temp_node != null);
+                }
+                while (temp_node != null);
+
                 for (const item of content) {
                     for (const child of item.reference) {
                         node.incubator.appendChild(child);
                     }
                 }
+
                 let _output = node.incubator.childNodes.length > 0;
                 node.replaceNodes();
                 return _output;
             }, true);
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     /**Run elaboration afer inject node flag in dom */
-    placeFlag(elaborate, bottom = false) {
+    placeFlag(elaborate: (node: vNode) => boolean, bottom: boolean = false) {
+
         let _position = bottom ? this.reference.length - 1 : 0;
-        if (this._reference.length > 0)
-            this.reference[_position].after(this.flag);
-        if (elaborate(this))
-            this.flag.remove();
+
+        if (this._reference.length > 0) (<HTMLElement>this.reference[_position]).after(this.flag);
+        if (elaborate(this)) this.flag.remove();
     }
-    hasAttribute(attribute) {
+    hasAttribute(attribute: string) {
         return this.isElement ? this.element?.hasAttribute(attribute) : false;
     }
     //#endregion
+
     //#region CHILDREN
     /**Remove children based on filter, if filter is empty it remove all children */
-    removeChildren(filter) {
+    removeChildren(filter?: (item: vNode) => boolean): void {
         try {
             if (filter) {
                 let _filtered = this._children.filter((e) => filter(e));
@@ -427,25 +426,22 @@ export class vNode {
                     child.dismiss();
                 }
                 this._children = _filtered;
-            }
-            else {
+            } else {
                 this._children = [];
                 if (this.reference && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE)
-                    this.reference[0].innerHTML = "";
+                    (<HTMLElement>this.reference[0]).innerHTML = "";
             }
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
     /**Replace virtual child with another */
-    replaceChild(vnode) {
+    replaceChild(vnode: vNode) {
         let _child = this._children.find((e) => e.id == this.id);
-        if (_child)
-            _child = vnode;
+        if (_child) _child = vnode;
     }
     /**Store children nodes as virtual nodes */
-    mapChildren(element) {
+    protected mapChildren(element: HTMLElement) {
         try {
             let _children = element.childNodes;
             for (const child of Array.from(_children)) {
@@ -455,30 +451,28 @@ export class vNode {
                     this.children.push(_node);
                 }
             }
-        }
-        catch (ex) {
+
+        } catch (ex) {
             throw ex;
         }
     }
     /**Check if child contains conditional rendering commands */
-    checkChild(child) {
-        if (child.nodeType == Node.ELEMENT_NODE)
-            return child.getAttributeNames().find(a => a == cIf.key_else || a == cIf.key_elseif) == null;
-        if (child.nodeType == Node.TEXT_NODE)
-            return child.nodeValue?.replace(/[\\n\s]*/g, "") != "";
+    protected checkChild(child: Node) {
+        if (child.nodeType == Node.ELEMENT_NODE) return (<Element>child).getAttributeNames().find(a => a == cIf.key_else || a == cIf.key_elseif) == null
+        if (child.nodeType == Node.TEXT_NODE) return child.nodeValue?.replace(/[\\n\s]*/g, "") != "";
         return true;
     }
     /**Setup children */
-    async setupChildren() {
-        let _setup = [];
+    protected async setupChildren() {
+        let _setup: Promise<void>[] = [];
         for (const child of this.children) {
             _setup.push(child.setup());
         }
         return Promise.all(_setup);
     }
     /**Run first elaboration command to all children */
-    async elaborateChildren() {
-        let _elabs = [];
+    protected async elaborateChildren() {
+        let _elabs: Promise<void>[] = [];
         if (!this._commands.find((c) => c instanceof cFor)) { //exclude for because of auto elaboration of command
             for (const child of this.children) {
                 _elabs.push(child.elaborate());
@@ -487,15 +481,15 @@ export class vNode {
         return Promise.all(_elabs);
     }
     /**Update  node's children */
-    async updateChildren() {
-        let _updates = [];
+    protected async updateChildren() {
+        let _updates: Promise<void>[] = [];
         for (const child of this.children) {
             _updates.push(child.update());
         }
         return Promise.all(_updates);
     }
     /**Setup default events on children */
-    setupChildEvents(_node) {
+    protected setupChildEvents(_node: vNode) {
         _node.onProgress((state) => {
             if (state == Collection.lifecycle.unmounted) {
                 this._children = this._children.filter((c) => c.id != _node.id);
@@ -503,48 +497,61 @@ export class vNode {
         });
     }
     /**Check in original document if this element or its parents has one or more specified tag properties between class, nodeName and attributes */
-    childOf(query) {
-        var isChild = (element) => {
+    childOf(query: QueryElement): boolean {
+        var isChild = (element: HTMLElement) => {
             return element.hasAttribute(query.attribute) || element.nodeName == query.nodeName || element.className.includes(query.class);
-        };
-        return this.isElement && isChild(this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
+        }
+        return this.isElement && isChild(<HTMLElement>this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
     }
+
+    //#endregion
 }
+
 /**vTemplate is the vDOM rappresentation of Components, it is an extension of vNode but with some semi-independant application features*/
 export class vTemplate extends vNode {
-    template = ""; // component's html code
-    vtemplate_children = []; //component's vDOM children only
-    attributes = [];
-    ; //component's paramters
-    dataset = {}; //base dataset for context
-    constructor(reference, template, options, parent) {
+
+    private template: string = ""; // component's html code
+    private vtemplate_children: vNode[] = []; //component's vDOM children only
+    private attributes: { name: string, prop: string, ref: string | null | undefined, dynamic: boolean | undefined }[] = [];; //component's paramters
+    private dataset: {
+        data?: DataCollection,
+        actions?: DataCollection,
+        computed?: DataCollection
+    } = {};//base dataset for context
+
+    constructor(reference: Node, template: string, options: TemplateOptions | undefined, parent?: vNode) {
         super(reference, parent);
-        if (options && "settings" in options)
-            this.updateSettings(options?.settings);
+        if (options && "settings" in options) this.updateSettings(<Settings>options?.settings);
         this.createTemplate(reference, template, options);
         this.load();
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
+
     /**Prepare template data for processing */
-    createTemplate(original, template, options) {
+    createTemplate(original: Node, template: string, options: TemplateOptions | undefined) {
         this.template = template;
+
         this.dataset = {
             data: options?.dataset,
             actions: options?.actions,
             computed: options?.computed
-        };
+        }
+
         this.setupAttributes(options, original);
         this.setupEvents(options);
+
         this._incubator = this.getRender();
         if (!this.commandDriven)
             this.vtemplate_children = this.mapTemplatechildren(this.incubator);
     }
+
     /**Elaborate template's document fragment */
-    getRender() {
+    private getRender(): DocumentFragment {
         return Support.templateFromString(this.template);
     }
+
     /**Elaborate complete template replacement */
-    load() {
+    private load(): void {
         try {
             //Collecting all non commands and out of dataset attributes of custom tag
             let _attributes = [];
@@ -555,51 +562,60 @@ export class vTemplate extends vNode {
                     }
                 }
             }
+
             let _content = document.createDocumentFragment(); //create container for 'out of template's context' items collectionù
+
             //Get 'out of template's context' children
             let _reference = this.reference[0];
             while (_reference.childNodes.length) {
                 _content.append(_reference.childNodes[0]);
             }
+
             //replace in render all 'out of template's context' children with tag
             var slots = this.incubator.querySelectorAll("slot");
             for (const _slot of Array.from(slots)) {
-                var element = _content.querySelector("[slot='" + _slot.getAttribute("name") + "']");
+                var element = <Node>_content.querySelector("[slot='" + _slot.getAttribute("name") + "']");
                 if (element) {
-                    element.removeAttribute("slot");
-                    _slot.parentNode?.replaceChild(element, _slot);
+                    (<HTMLElement>element).removeAttribute("slot");
+                    (<Element>_slot).parentNode?.replaceChild(element, _slot);
                 }
             }
+
             while (_content.childNodes.length) {
                 this.incubator.firstChild?.appendChild(_content.childNodes[0]);
             }
+
             //Copying all extra custom tag's attributes on first render child node if it is a Node Element
             if (this.incubator.firstChild?.nodeType == Node.ELEMENT_NODE) {
-                let _element = this.incubator.firstChild;
+                let _element = (<Element>this.incubator.firstChild);
                 for (const attr of _attributes) {
                     _element.setAttribute(attr, (_element.hasAttribute(attr) ? _element.getAttribute(attr) + " " : "") + this.element?.getAttribute(attr));
                 }
             }
+
             //this._handler.trigger(Collection.node_event.render, this.incubator, this);
             this.incubator.querySelectorAll("ref").forEach(e => e.remove());
+
             this.replaceNodes();
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
-    setupEvents(options) {
+
+    private setupEvents(options: TemplateOptions | undefined) {
         if (options?.events) {
             for (let event of options.events) {
                 this._handler.on(event.name, event.action);
             }
         }
     }
-    setupAttributes(options, original) {
+
+    private setupAttributes(options: TemplateOptions | undefined, original: Node) {
         if (options?.properties) {
-            let _attributes = original.getAttributeNames();
+            let _attributes = (<Element>original).getAttributeNames();
             for (const attr of options.properties) {
                 let _attribute = _attributes.find(a => a.includes(attr));
+
                 if (_attribute != null) {
                     this.attributes.push({
                         name: _attribute,
@@ -607,8 +623,7 @@ export class vTemplate extends vNode {
                         ref: this.element?.getAttribute(_attribute),
                         dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
                     });
-                }
-                else {
+                } else {
                     this.attributes.push({
                         name: "",
                         prop: attr,
@@ -619,15 +634,16 @@ export class vTemplate extends vNode {
             }
         }
     }
+
     async setup() {
         try {
             await super.setup();
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
         }
     }
+
     async dismiss() {
         try {
             this.state = Collection.lifecycle.unmounting;
@@ -636,64 +652,68 @@ export class vTemplate extends vNode {
             }
             this.vtemplate_children = [];
             await super.dismiss();
-        }
-        catch (ex) {
+        } catch (ex) {
             log(ex, Collection.message_type.error);
         }
     }
+
     /**Like the application's relative method, it defines a unique data context,
      * but the passed variable's proxy is linked to the relative in the parent context instead of updating all vdom. */
-    async buildContext() {
+    private async buildContext(): Promise<DataCollection> {
         this.state = Collection.lifecycle.context_creating;
-        let _update;
+        let _update: UpdateOptions | undefined;
+
         return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
             .then((output) => {
-            output[Collection.KeyWords.node] = this;
-            output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
-            output[Collection.KeyWords.app] = this.application;
-            for (const attr of this.attributes) {
-                if (!(attr.prop in output && attr.name == "")) {
-                    let _options = {
-                        handler: this._handler,
-                        node: this,
-                        get: (_target, _key, _context) => {
-                            if (attr.ref) {
-                                return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
+                output[Collection.KeyWords.node] = this;
+                output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
+                output[Collection.KeyWords.app] = this.application;
+
+                for (const attr of this.attributes) {
+
+                    if (!(attr.prop in output && attr.name == "")) {
+
+                        let _options: ReactivityOptions = {
+                            handler: this._handler,
+                            node: this,
+                            get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
+                                if (attr.ref) {
+                                    return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
+                                }
+                                return Support.getValue(_target, _vault_key + "." + _key);
+                            },
+                            set: (_target: any, _key: any, newvalue: any) => {
+                                if (attr.dynamic && attr.ref != null) {
+                                    if (Reflect.get(this.context, attr.ref) !== newvalue) Support.setValue(this.context, attr.ref, newvalue);
+                                } else {
+                                    if (Reflect.get(_target, _key) !== newvalue) Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                                }
+
                             }
-                            return Support.getValue(_target, _vault_key + "." + _key);
-                        },
-                        set: (_target, _key, newvalue) => {
-                            if (attr.dynamic && attr.ref != null) {
-                                if (Reflect.get(this.context, attr.ref) !== newvalue)
-                                    Support.setValue(this.context, attr.ref, newvalue);
-                            }
-                            else {
-                                if (Reflect.get(_target, _key) !== newvalue)
-                                    Support.setValue(_target, _vault_key + "." + _key, newvalue);
-                            }
-                        }
-                    };
-                    //output[attr.prop] = attr.ref;
-                    ref(output, attr.prop, attr.ref, _options);
-                    if (attr.name && this.reference.length > 0)
-                        this.reference[0].removeAttribute(attr.name);
+                        };
+
+                        //output[attr.prop] = attr.ref;
+                        ref(output, attr.prop, attr.ref, _options);
+                        if (attr.name && this.reference.length > 0) (<Element>this.reference[0]).removeAttribute(attr.name);
+                    }
                 }
-            }
-            return react(output, { handler: this._handler });
-        }).then((context) => {
-            this.state = Collection.lifecycle.context_created;
-            return context;
-        });
+                return react(output, { handler: this._handler });
+            }).then((context) => {
+                this.state = Collection.lifecycle.context_created;
+                return context
+            });
     }
-    async elaborateContext(context) {
+
+    protected async elaborateContext(context?: DataCollection | undefined): Promise<void> {
         await this.buildContext().then((template_context) => {
             this.context = context || this.parent?.context || template_context || {};
             this._handler.setContext(template_context);
             this._handler.trigger(Collection.node_event.dataset, template_context);
         });
     }
+
     /**Elaborate template's virtual nodes  */
-    mapTemplatechildren(render) {
+    private mapTemplatechildren(render: DocumentFragment): vNode[] {
         let _children = [];
         for (const child of Array.from(render.childNodes)) {
             if (this.checkChild(child)) {
@@ -704,9 +724,10 @@ export class vTemplate extends vNode {
         }
         return _children;
     }
-    async setupChildren() {
+
+    protected async setupChildren(): Promise<void[]> {
         return super.setupChildren().then(() => {
-            var _setup = [];
+            var _setup: Promise<void>[] = []
             //exclude for because of auto elaboration of command
             for (const child of this.vtemplate_children) {
                 _setup.push(child.setup());
@@ -716,9 +737,9 @@ export class vTemplate extends vNode {
     }
     /**Processes the children of the component using its personal context
      * and injected children with the inherited context  */
-    async elaborateChildren() {
+    protected async elaborateChildren(): Promise<void[]> {
         return super.elaborateChildren().then(() => {
-            var _elabs = [];
+            var _elabs: Promise<void>[] = []
             //exclude for because of auto elaboration of command
             if (!this._commands.find((c) => c instanceof cFor)) {
                 for (const child of this.vtemplate_children) {
@@ -728,9 +749,10 @@ export class vTemplate extends vNode {
             return Promise.all(_elabs);
         });
     }
-    async updateChildren() {
+
+    protected async updateChildren(): Promise<void[]> {
         return super.updateChildren().then(() => {
-            var _elabs = [];
+            var _elabs: Promise<void>[] = []
             //exclude for because of auto elaboration of command
             for (const child of this.vtemplate_children) {
                 _elabs.push(child.update());
@@ -738,10 +760,13 @@ export class vTemplate extends vNode {
             return Promise.all(_elabs);
         });
     }
+
     /**Update node settings and children settings in cascade*/
-    updateSettings(settings) {
+    updateSettings(settings: Settings | undefined) {
+
         if (settings != null) {
             super.updateSettings(settings);
+
             for (const child of this.vtemplate_children) {
                 child.updateSettings(settings);
             }

@@ -1,41 +1,46 @@
+import { history } from "./types";
 export class User {
-    _settings = {};
-    _data;
-    _history = [];
-    _id = "lamp_user";
-    state = "active";
-    get settings() { return this._settings; }
-    get data() { return this._data; }
-    get history() { return this._history; }
-    get id() { return this._id; }
-    get stringify() {
+
+    private _settings: any = {};
+    private _data: any;
+    private _history: history[] = [];
+    private _id: string = "lamp_user";
+    public state: string = "active";
+
+    public get settings() { return this._settings; }
+    public get data() { return this._data; }
+    public get history() { return this._history; }
+    public get id() { return this._id; }
+    get stringify(): string {
         let _json = {
             id: this.id,
             data: this.data,
             history: this.history,
             settings: this.settings,
             state: this.state,
-        };
+        }
         return JSON.stringify(_json);
     }
-    constructor(id, data, settings) {
+
+    constructor(id: string, data: any, settings?: any) {
         this._id = id;
         this._data = data;
         this._settings = settings || {};
     }
+
     save() {
         try {
             let _storage = {
                 history: this.history,
                 settings: this.settings
-            };
+            }
             localStorage.setItem(this.id, JSON.stringify(_storage));
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    static retrive(id, data) {
+
+    static retrive(id: string, data: any): User | undefined {
         try {
             let _storage = localStorage.getItem(id);
             if (_storage) {
@@ -45,9 +50,9 @@ export class User {
                 return _user;
             }
             return undefined;
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
+
 }

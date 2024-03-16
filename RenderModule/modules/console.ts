@@ -1,5 +1,7 @@
 import { Collection } from "./enumerators.js";
-export default function log(message, type = Collection.message_type.log) {
+
+
+export default function log(message: any, type: Collection.message_type = Collection.message_type.log) {
     switch (type) {
         case Collection.message_type.log:
             console.log("LAMP.log:", message);

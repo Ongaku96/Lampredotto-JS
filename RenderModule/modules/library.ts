@@ -1,92 +1,83 @@
 import { Collection } from "./enumerators.js";
 import { primitive_types } from "./global.js";
 import { _vault_key, react } from "./reactive.js";
-export var Support;
-(function (Support) {
+import { DataCollection, Formatter, ReactivityOptions, Settings } from "./types.js";
+
+export namespace Support {
+
+
     /**Execute a stringified function */
-    function runFunctionByString(script, context, evt, _return = true) {
+    export function runFunctionByString(script: string, context: object, evt?: Event, _return: boolean = true): any {
         try {
-            var _script = script
+            var _script: string = script
                 .replace(/'/g, '"')
                 .replace(/\n/g, "\\n")
                 .replace(Collection.regexp.appdata, (match) => {
-                let _formatted_match = match.slice(1);
-                return `this${_formatted_match}`;
-            });
-            if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\""))
-                _script = "\"" + _script + "\"";
-            if (!_script.includes("return") && _return)
-                _script = "return " + _script;
-            let _function = new Function("evt", _script);
+                    let _formatted_match = match.slice(1);
+                    return `this${_formatted_match}`;
+                });
+            if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\"")) _script = "\"" + _script + "\"";
+            if (!_script.includes("return") && _return) _script = "return " + _script;
+            let _function: Function = new Function("evt", _script);
             return _function.call(context, evt);
-        }
-        catch (ex) {
+        } catch (ex) {
             throw "error executing script {" + script + "}: " + ex;
         }
     }
-    Support.runFunctionByString = runFunctionByString;
     /**Get list of app's dataset properties that are included in the script */
-    function getPropertiesFromScript(script) {
-        let _props = [];
-        let _match;
+    export function getPropertiesFromScript(script: string): string[] {
+        let _props: string[] = [];
+        let _match: RegExpExecArray | null;
         if (script.includes("$.")) {
             while ((_match = Collection.regexp.appdata.exec(script)) !== null) {
                 _props.push(_match[0].replace("$.", ""));
             }
-        }
-        else {
+        } else {
             _props.push(script);
         }
         return _props;
     }
-    Support.getPropertiesFromScript = getPropertiesFromScript;
     /**
      * Function to sort alphabetically an array of objects by some specific key.
      *
      * @param {String}; property Key of the object to sort.
      */
-    function dynamicSort(property, desc) {
+    export function dynamicSort(property: string, desc: boolean): (a: any, b: any) => number {
         try {
-            return function (a, b) {
-                let _first = property ? getValue(a, property) : a;
-                let _second = property ? getValue(b, property) : b;
+            return function (a: any, b: any) {
+                let _first: any = property ? getValue(a, property) : a;
+                let _second: any = property ? getValue(b, property) : b;
+
                 if (isNaN(_first)) {
                     if (desc) {
                         return _second.localeCompare(_first);
-                    }
-                    else {
+                    } else {
                         return _first.localeCompare(_second);
                     }
-                }
-                else {
+                } else {
                     if (desc) {
                         return _second - _first;
-                    }
-                    else {
+                    } else {
                         return _first - _second;
                     }
                 }
             };
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.dynamicSort = dynamicSort;
     /**Deep copy of array values copied by value and not by ref*/
-    function duplicateArray(array) {
+    export function duplicateArray(array: any[]): any[] {
         try {
             return JSON.parse(JSON.stringify(array));
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.duplicateArray = duplicateArray;
     /**merge multiple array in one */
-    function mergeArrays(...arrays) {
+    export function mergeArrays(...arrays: never[][]): any[] {
         try {
-            let _result = [];
+            let _result: never[] = [];
             for (const array of arrays) {
                 if (array) {
                     for (const item of array) {
@@ -97,74 +88,60 @@ export var Support;
                 }
             }
             return _result;
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.mergeArrays = mergeArrays;
     /**get unique ID */
-    function uniqueID() {
+    export function uniqueID(): string {
         return Math.floor(Math.random() * Date.now()).toString(36);
     }
-    Support.uniqueID = uniqueID;
     /**Elaborate tag and return object path stored inside */
-    function getPathFromTag(tag, prefix = "") {
+    export function getPathFromTag(tag: string, prefix: string = ""): string {
         try {
-            if (prefix)
-                tag = tag.replace(prefix + ".", "");
+            if (prefix) tag = tag.replace(prefix + ".", "");
             return tag.replace("{{", "").replace("}}", "").trim();
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.getPathFromTag = getPathFromTag;
     /**Check if two objects has the same keys */
-    function compareKeys(obj1, obj2) {
+    export function compareKeys(obj1: any, obj2: any) {
         try {
             let _a = Object.keys(obj1).sort();
             let _b = Object.keys(obj2).sort();
             return JSON.stringify(_a) === JSON.stringify(_b);
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.compareKeys = compareKeys;
     /**Check if value is that datatype  */
-    function checkDataType(value, type) { return typeof value == type; }
-    Support.checkDataType = checkDataType;
+    export function checkDataType(value: any, type: string): boolean { return typeof value == type; }
     /**check if value is not object or array or a function */
-    function isPrimitive(value) { return primitive_types.includes(typeof value); }
-    Support.isPrimitive = isPrimitive;
+    export function isPrimitive(value: any): boolean { return primitive_types.includes(typeof value); }
     /**Check if object is undefined or has properties */
-    function isEmpty(obj) { return obj == null || Object.getOwnPropertyNames(obj).length === 0; }
-    Support.isEmpty = isEmpty;
+    export function isEmpty(obj?: object): boolean { return obj == null || Object.getOwnPropertyNames(obj).length === 0; }
     /**Get value of object by a given string path of properties */
-    function getValue(prop, path) {
+    export function getValue(prop: any, path: string): any {
         try {
             if (path && typeof path == "string") {
                 let _array_path = path.replace(/\]/g, "").split(/[.\[]+/g);
                 for (var i = 0; i < _array_path.length; i++) {
                     if (prop != null && !isPrimitive(prop) && _array_path[i] in prop) {
                         prop = prop[_array_path[i]];
-                    }
-                    else {
+                    } else {
                         return undefined;
                     }
                 }
                 return prop;
             }
             return prop[path];
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.getValue = getValue;
     /**Set value of object by a given string path of properties */
-    function setValue(prop, path, value) {
+    export function setValue(prop: any, path: string, value: any) {
         try {
             if (path) {
                 let _array_path = path.replace(/\]/g, "").split(/[.\[]+/g);
@@ -172,35 +149,30 @@ export var Support;
                     if (prop) {
                         if (value !== undefined && i == _array_path.length - 1) {
                             prop[_array_path[i]] = value;
-                        }
-                        else {
+                        } else {
                             prop = prop[_array_path[i]];
                         }
                     }
                 }
             }
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.setValue = setValue;
     /**Stamp value based on passed format*/
-    function format(value, formatters) {
+    export function format(value: any, formatters: Formatter[] | undefined): any {
         try {
             if (formatters) {
                 let _formatter = formatters?.find(f => typeof f.type == "string" ? f.type === typeof value : value instanceof f.type);
                 return _formatter ? _formatter.stamp(value) : value;
             }
             return value;
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.format = format;
     /**Convert string to HTML content inside a Document Fragment*/
-    function templateFromString(template_text) {
+    export function templateFromString(template_text: string): DocumentFragment {
         try {
             template_text = template_text.trim();
             let _template = document.createElement("template");
@@ -210,21 +182,18 @@ export var Support;
                 _template.innerHTML = _inner_template.innerHTML;
             }
             return _template.content;
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.templateFromString = templateFromString;
     /**Build render reactive data context joining all data sets, actions and computed parameters */
-    async function elaborateContext(context, dataset, reactivity, actions, computed) {
+    export async function elaborateContext(context: DataCollection, dataset?: DataCollection, reactivity?: ReactivityOptions, actions?: DataCollection, computed?: DataCollection): Promise<DataCollection> {
         //Define values from dataset
         if (dataset) {
             for (let param of Object.keys(dataset)) {
                 try {
                     context[param] = react(dataset[param], reactivity);
-                }
-                catch (ex) {
+                } catch (ex) {
                     throw ex;
                 }
             }
@@ -232,7 +201,7 @@ export var Support;
         //define values from actions
         if (actions) {
             for (let action of Object.keys(actions)) {
-                context[action] = function (...args) { return actions[action].call(react(context, reactivity), ...args); };
+                context[action] = function (...args: any[]) { return actions[action].call(react(context, reactivity), ...args); };
             }
         }
         //define values from getters
@@ -245,18 +214,17 @@ export var Support;
                 });
             }
         }
+
         return context;
     }
-    Support.elaborateContext = elaborateContext;
     /**Check if debug mode is active */
-    function debug(settings, mode) {
+    export function debug(settings: Settings, mode?: string): boolean | undefined {
         return settings.debug && (settings.debug_mode ? (mode ? (settings.debug_mode == Collection.debug_mode.all || settings.debug_mode == mode) : true) : true);
     }
-    Support.debug = debug;
     /**Clone Data Collection */
-    function cloneCollection(context) {
+    export function cloneCollection(context: DataCollection): DataCollection {
         try {
-            let _data = {};
+            let _data: DataCollection = {};
             for (const key of Reflect.ownKeys(context)) {
                 if (key != _vault_key) {
                     // get: (_target: any, _key: any) => {
@@ -264,11 +232,10 @@ export var Support;
                     //     return Reflect.get(context, key);
                     // },
                     let _react = {
-                        set: (_target, _key, newvalue) => {
-                            if (newvalue != Reflect.get(context, key))
-                                Reflect.set(context, key, newvalue);
+                        set: (_target: any, _key: any, newvalue: any) => {
+                            if (newvalue != Reflect.get(context, key)) Reflect.set(context, key, newvalue);
                         }
-                    };
+                    }
                     // if (Support.isPrimitive(Reflect.get(context, key))) {
                     //     ref(context, key.toString(), _react);
                     // } else {
@@ -277,47 +244,41 @@ export var Support;
                 }
             }
             return _data;
-        }
-        catch (ex) {
+        } catch (ex) {
             throw ex;
         }
     }
-    Support.cloneCollection = cloneCollection;
     /**Check if a value is an Array */
-    function isArray(value) {
+    export function isArray(value: any) {
         return typeof value == 'function' && Array.isArray(value());
     }
-    Support.isArray = isArray;
     /**Get all comments from root dom element */
-    function getComment(content) {
+    export function getComment(content: string): Node | null {
         // Fourth argument, which is actually obsolete according to the DOM4 standard, is required in IE 11
         var iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone);
         var curNode;
         while (curNode = iterator.nextNode()) {
-            if (curNode.nodeValue === content)
-                return curNode;
+            if (curNode.nodeValue === content) return curNode;
         }
         return null;
+
         function filterNone() {
             return NodeFilter.FILTER_ACCEPT;
         }
     }
-    Support.getComment = getComment;
     /**Check if event is native */
-    function isNativeEvent(eventname) {
+    export function isNativeEvent(eventname: any): boolean {
         return typeof Reflect.get(document.body, "on" + eventname) !== "undefined";
     }
-    Support.isNativeEvent = isNativeEvent;
-})(Support || (Support = {}));
-export var View;
-(function (View) {
-    function darkmode() {
+}
+
+export namespace View {
+
+    export function darkmode() {
         if (document.body.getAttribute("theme")) {
             document.body.setAttribute("theme", "");
-        }
-        else {
+        } else {
             document.body.setAttribute("theme", "dark");
         }
     }
-    View.darkmode = darkmode;
-})(View || (View = {}));
+}

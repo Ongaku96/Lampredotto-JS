@@ -1,8 +1,11 @@
 import { defineComponent } from "../LampRender.js";
-defineComponent({
-    selector: "lamp-block",
-    template: `<div block></div>`
-}, `div[block] {
+
+defineComponent(
+    {
+        selector: "lamp-block",
+        template: `<div block></div>`
+    },
+    `div[block] {
         display: flex;
         flex-direction: row;
         justify-content: center;
@@ -22,4 +25,5 @@ defineComponent({
                 border-radius: 0 var(--global-radius) var(--global-radius) 0 !important;
             }
         }
-    }`);
+    }`
+);

@@ -1,43 +1,45 @@
 export default class Storage {
-    address;
-    controller;
-    constructor(path) {
+
+    protected address: string;
+    private controller: AbortController;
+
+    constructor(path: string) {
         this.address = path;
         this.controller = new AbortController();
     }
-    save(data, filename) {
+
+
+    save(data: FormData, filename?: string): Promise<Response> {
         try {
             let _url = this.address;
-            if (filename != null)
-                _url += filename;
+            if (filename != null) _url += filename;
+
             return fetch(_url, {
                 method: "POST",
                 body: data
             });
-        }
-        catch (ex) {
+        } catch (ex) {
             console.error("LAMP STORAGE: " + ex);
             return new Promise(() => { return Response.error(); });
         }
     }
-    read(filename) {
+
+    read(filename?: string): Promise<Response> {
         try {
             let _url = this.address;
-            if (filename != null)
-                _url += filename;
+            if (filename != null) _url += filename;
             return fetch(_url);
-        }
-        catch (ex) {
+        } catch (ex) {
             console.error("LAMP STORAGE: " + ex);
             return new Promise(() => { return Response.error(); });
         }
     }
+
     abort() {
         try {
             this.controller.abort();
             console.log("Connection to " + this.address + " aborted");
-        }
-        catch (ex) {
+        } catch (ex) {
             console.error("LAMP STORAGE: " + ex);
         }
     }

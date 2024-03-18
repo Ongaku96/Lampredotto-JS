@@ -1,15 +1,35 @@
 import { defineComponent } from "../../LampRender.js";
+
 defineComponent({
     selector: "float-container",
-    templatePath: "RenderModule/components/floating/floating.component.html",
-    stylesPath: "RenderModule/components/floating/floating.component.css",
+    templatePath: "<div float-container='hide'></div>",
+    stylesPath: `[floating-item] {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+}
+
+[float-container] {
+    position: relative;
+}
+
+[float-container='hide']>[floating-item] {
+    display: none;
+}
+
+[float-container='show']:not([disabled])>[floating-item] {
+    display: block;
+}`,
 });
+
 export const menu_keys = {
     container: "float-container",
     toggle: "float-toggle",
     item: "floating-item",
     query: (key) => "[" + key + "]"
-};
+}
 /**Setup of floating elements position and */
 export function floatingMenuManagement(e) {
     var clickedElement = e.target;
@@ -18,6 +38,7 @@ export function floatingMenuManagement(e) {
             let virtualCondition = "virtual" in clickedElement ?
                 !clickedElement.virtual.childOf({ attribute: menu_keys.item }) &&
                 !clickedElement.virtual.childOf({ attribute: menu_keys.toggle }) : true;
+
             return virtualCondition;
         }
         return true;
@@ -26,35 +47,35 @@ export function floatingMenuManagement(e) {
         if (clickedElement) {
             return clickedElement.closest(menu_keys.query(menu_keys.toggle)) != null ||
                 "virtual" in clickedElement && clickedElement.virtual.childOf({ attribute: menu_keys.toggle });
-        }
-        return false;
+        } return false;
     }
-    if (isUnfocused()) {
-        closeOpenedMenus(clickedElement);
-        return;
-    }
+
+    if (isUnfocused()) { closeOpenedMenus(clickedElement); return; }
     if (isToggle()) {
         closeOpenedMenus(clickedElement);
         let _parent = clickedElement?.closest(menu_keys.query(menu_keys.container));
         if (_parent && _parent.getAttribute(menu_keys.container) != "show") {
             let _item = _parent.querySelector(menu_keys.query(menu_keys.item));
-            if (_item)
-                openFloatingMenu(_item);
+            if (_item) openFloatingMenu(_item);
         }
     }
 }
 /**open a floating menu */
 export function openFloatingMenu(item) {
+
     let _container = item.closest(menu_keys.query(menu_keys.container));
     _container.setAttribute(menu_keys.container, "show");
     let _container_rect = _container.getBoundingClientRect();
     // item.style.minWidth = _container_rect.width + "px";
     let _rect = item.getBoundingClientRect();
     let _position = item.getAttribute(menu_keys.item);
+
     let _left = _container_rect.left;
     let _top = _container_rect.top;
+
     const _margin = 4;
     switch (_position) {
+
         case "top left":
             item.style.left = _left + "px";
             item.style.top = (_top + _rect.height + _margin) + "px";
@@ -96,13 +117,13 @@ export function openFloatingMenu(item) {
             break;
     }
 }
+
 export function closeFloatingItems(evt) {
     closeOpenedMenus(evt.currentTarget);
 }
 /**close all opened floating menus */
 export function closeOpenedMenus(item) {
     document.querySelectorAll("div[" + menu_keys.container + " = 'show']").forEach((e) => {
-        if ((item && !e.contains(item)) || item == null)
-            e.setAttribute(menu_keys.container, "hide");
+        if ((item && !e.contains(item)) || item == null) e.setAttribute(menu_keys.container, "hide");
     });
 }

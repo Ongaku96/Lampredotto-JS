@@ -35,14 +35,47 @@ defineComponent({
   styles?: string[],
   stylesPath?: string,
   options?: {
-    properties: [], //list of html attributes that inherit values from the parent virtual node
+    inputs: [], //list of html attributes that inherit values from the parent context
     dataset: {}, //data set used in the component
     computed: {}, //dynamically defined read-only datasets while using the component
     actions: {}, //set of component functions
     events: [], //trigger of component events
     settings: {}, //component's settings
   },
-  class?: object //NOT SUPPORTED YET
+  class?: iComponent //new instance of a class that extend iComponent interface.
+});
+
+```
+
+How to implement Component's options by extending iComponent class
+
+```javascript
+
+import { defineComponent } from "https://cdn.jsdelivr.net/gh/Ongaku96/LAMP/RenderModule/LampRender.js";
+import { iComponent } from "https://cdn.jsdelivr.net/gh/Ongaku96/LAMP/RenderModule/modules/types.js";
+class MyComponent extends iComponent{
+  constructor(){
+    super("input1", "input2"); //pass component's element attribute names for data binding
+    this.prop1 = "value" //set component's Dataset
+  }
+
+  get prop2() { return this.prop1; } //set component's computed dataset
+
+  action1(){} //Implement actions
+
+  events() { //override this method to events implementation
+    return [];
+  }
+  settings(){ //override this method for settings
+    return {}
+  }
+}
+
+defineComponent({
+  selector: "my-selector",
+  template?: "<div></div>",
+  styles?: [""],
+  class?: new MyComponent()
 });
 
 ```

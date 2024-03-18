@@ -121,6 +121,8 @@ export var Collection;
         application_event["setup"] = "setup";
         /**Triggered on application render */
         application_event["render"] = "render";
+        /**Triggered when a new component is loaded*/
+        application_event["component"] = "component";
     })(application_event = Collection.application_event || (Collection.application_event = {}));
     let debug_mode;
     (function (debug_mode) {

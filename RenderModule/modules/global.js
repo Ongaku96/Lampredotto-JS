@@ -1,4 +1,4 @@
-import { floatingMenuManagement, closeFloatingItems } from "../components/floating.js";
+import { floatingMenuManagement, closeFloatingItems } from "../components/floating/floating.component.js";
 export var primitive_types = ["number", "string", "boolean", "symbol"];
 export var global_listener = [
     {

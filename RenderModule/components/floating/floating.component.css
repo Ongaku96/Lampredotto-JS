@@ -1,0 +1,23 @@
+[floating-item] {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+
+    & [float-container] {
+        position: relative;
+    }
+
+    & [float-container='hide'] {
+        >[floating-item] {
+            display: none;
+        }
+    }
+
+    & [float-container='show']:not([disabled]) {
+        >[floating-item] {
+            display: block;
+        }
+    }
+}

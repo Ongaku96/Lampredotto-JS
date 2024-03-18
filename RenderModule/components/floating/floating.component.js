@@ -1,31 +1,9 @@
-import { defineComponent } from "../LampRender.js";
+import { defineComponent } from "../../LampRender.js";
 defineComponent({
     selector: "float-container",
-    template: `<div float-container='hide'></div>`
-}, `*[floating-item] {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        overflow-y: auto;
-        @include elevated();
-    }
-
-    div[float-container] {
-        position: relative;
-    }
-
-    div[float-container='hide'] {
-        &>*[floating-item] {
-            display: none;
-        }
-    }
-
-    div[float-container='show'] {
-        &>*[floating-item] {
-            display: block;
-        }
-    }`);
+    templatePath: "RenderModule/components/floating/floating.component.html",
+    stylesPath: "RenderModule/components/floating/floating.component.css",
+});
 export const menu_keys = {
     container: "float-container",
     toggle: "float-toggle",
@@ -39,7 +17,7 @@ export function floatingMenuManagement(e) {
         if (clickedElement) {
             let virtualCondition = "virtual" in clickedElement ?
                 !clickedElement.virtual.childOf({ attribute: menu_keys.item }) &&
-                    !clickedElement.virtual.childOf({ attribute: menu_keys.toggle }) : true;
+                !clickedElement.virtual.childOf({ attribute: menu_keys.toggle }) : true;
             return virtualCondition;
         }
         return true;

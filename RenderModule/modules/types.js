@@ -160,6 +160,52 @@ class StringAction {
         }
     }
 }
+/**Interface for starting the component by class */
+class iComponent {
+    inputs = [];
+    constructor(...inputs) {
+        this.inputs = inputs;
+    }
+    /**Convert object properties to TemplateOptions */
+    toTemplateOptions() {
+        var props = Object.getOwnPropertyNames(this);
+        // var actions = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
+        var options = {
+            inputs: this.inputs,
+            dataset: {},
+            computed: {},
+            actions: {},
+            events: this.events ? this.events() : [],
+            settings: this.settings ? this.settings() : new Settings(),
+        };
+        props.forEach((key) => {
+            if (key != "properties") {
+                var desc = Object.getOwnPropertyDescriptor(this, key);
+                if (desc && "get" in desc) {
+                    Reflect.set(options.computed, key, desc.get);
+                }
+                else {
+                    if (options.dataset)
+                        Reflect.set(options.dataset, key, Reflect.get(this, key));
+                }
+            }
+        });
+        // actions = actions.filter(a => a !== "getComponentOptions" &&
+        //     a !== "settings" &&
+        //     a !== "events" &&
+        //     a !== "constructor");
+        var clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+        delete clone.getComponentOptions;
+        delete clone.settings;
+        delete clone.events;
+        delete clone.constructor;
+        for (const key of props) {
+            delete clone[key];
+        }
+        options.actions = clone;
+        return options;
+    }
+}
 //#region INTERFACES
 /**Framework Settings */
 class Settings {
@@ -197,4 +243,4 @@ class Settings {
             this.interface = settings.interface;
     }
 }
-export { Settings, StringAction, ApplicationBuilder }; //classes
+export { Settings, StringAction, ApplicationBuilder, iComponent }; //classes

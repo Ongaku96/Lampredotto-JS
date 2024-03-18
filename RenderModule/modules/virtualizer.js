@@ -596,9 +596,9 @@ export class vTemplate extends vNode {
         }
     }
     setupAttributes(options, original) {
-        if (options?.properties) {
+        if (options?.inputs) {
             let _attributes = original.getAttributeNames();
-            for (const attr of options.properties) {
+            for (const attr of options.inputs) {
                 let _attribute = _attributes.find(a => a.includes(attr));
                 if (_attribute != null) {
                     this.attributes.push({

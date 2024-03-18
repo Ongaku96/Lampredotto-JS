@@ -1,5 +1,5 @@
 import "./modules/global.js";
-import "./components/DefaultComponents.js";
+import "./components/lamp.components.js";
 import EventHandler from "./modules/events.js";
 import { ApplicationBuilder } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";
@@ -29,6 +29,12 @@ export default class RenderEngine {
         this.handler.trigger(Collection.lifecycle.creating.toString());
     }
     setupEvents() {
+        document.addEventListener(Collection.application_event.component, (evt) => {
+            Array.from(document.querySelectorAll(evt.detail)).forEach(element => {
+                if ("virtual" in element)
+                    element?.virtual?.update();
+            });
+        });
         this.handler.on(Collection.lifecycle.creating.toString(), async () => {
             //console.clear();
             log("Building API...");
@@ -44,20 +50,33 @@ export default class RenderEngine {
     }
 }
 /**Define new Component by template*/
-export function defineComponent(component) {
-    var templateString = "";
-    var styleString = component.styles || [];
-    if (component.templatePath) {
-        fetch(component.templatePath).then(response => response.text()).then((data) => { templateString = data; });
+export async function defineComponent(component) {
+    if (component.selector) {
+        var template = component.template || "";
+        var styles = component.styles || [];
+        if (component.templatePath) {
+            await fetch(component.templatePath)
+                .then(res => res.ok ? res.text() : component.template)
+                .then((code) => { template = code || ""; });
+        }
+        if (component.stylesPath) {
+            await fetch(component.stylesPath)
+                .then(res => res.ok ? res.text() : null)
+                .then((css) => { styles = css ? [css] : component.styles || []; });
+        }
+        setupComponent(component.selector, template, component.options || component.class?.toTemplateOptions() || {});
+        for (const style of styles) {
+            styleComponent(style);
+        }
+        ;
+        document.dispatchEvent(new CustomEvent(Collection.application_event.component, { detail: component.selector }));
     }
-    setupComponent(component.selector, component.template || templateString, component.options || {});
-    for (const style of styleString) {
-        styleComponent(style);
+    else {
+        log(`Impossible to define component: ${JSON.stringify(component)}`, Collection.message_type.warning);
     }
-    ;
 }
 /**Get Component elaborated from server */
-export function serverComponent(url, timeoutConnection = 30000) {
+export async function serverComponent(url, timeoutConnection = 30000) {
     const request = () => {
         let controller = new AbortController();
         setTimeout(() => { controller.abort(); }, timeoutConnection);
@@ -75,24 +94,11 @@ export function serverComponent(url, timeoutConnection = 30000) {
         });
     };
     try {
-        return request().then((response) => {
-            if (response.ok) {
-                response.json().then((template) => {
-                    if ("tag" in template && "code" in template)
-                        defineComponent(template);
-                    else
-                        log(`Impossible to define as component: ${JSON.stringify(template)}`, Collection.message_type.warning);
-                });
-            }
-            else {
-                log(response.text, Collection.message_type.server_error);
-                throw response;
-            }
-            return response;
-        });
+        await request()
+            .then(res => res.ok ? res.json() : log(res.text, Collection.message_type.server_error))
+            .then(component => defineComponent(component));
     }
     catch (ex) {
         log(ex, Collection.message_type.error);
-        throw ex;
     }
 }

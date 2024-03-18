@@ -1,5 +1,5 @@
 import "./modules/global.js";
-import "./components/DefaultComponents.js";
+import "./components/lamp.components.js";
 import EventHandler from "./modules/events.js";
 import { ApplicationBuilder, ComponentOptions } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";
@@ -32,6 +32,11 @@ export default class RenderEngine {
     }
 
     setupEvents() {
+        document.addEventListener(Collection.application_event.component, (evt: Event) => {
+            Array.from(document.querySelectorAll((<CustomEvent>evt).detail)).forEach(element => {
+                if ("virtual" in element) element?.virtual?.update();
+            });
+        });
         this.handler.on(Collection.lifecycle.creating.toString(), async () => {
             //console.clear();
             log("Building API...");
@@ -48,17 +53,31 @@ export default class RenderEngine {
     }
 }
 /**Define new Component by template*/
-export function defineComponent(component: ComponentOptions): void {
-    var templateString = "";
-    var styleString = component.styles || [];
-    if (component.templatePath) {
-        fetch(component.templatePath).then(response => response.text()).then((data) => { templateString = data; });
+export async function defineComponent(component: ComponentOptions): Promise<void> {
+    if (component.selector) {
+        var template: string = component.template || "";
+        var styles: string[] = component.styles || [];
+
+        if (component.templatePath) {
+            await fetch(component.templatePath)
+                .then(res => res.ok ? res.text() : component.template)
+                .then((code) => { template = code || ""; });
+        }
+        if (component.stylesPath) {
+            await fetch(component.stylesPath)
+                .then(res => res.ok ? res.text() : null)
+                .then((css) => { styles = css ? [css] : component.styles || []; })
+        }
+
+        setupComponent(component.selector, template, component.options || component.class?.toTemplateOptions() || {});
+        for (const style of styles) { styleComponent(style) };
+        document.dispatchEvent(new CustomEvent(Collection.application_event.component, { detail: component.selector }));
+    } else {
+        log(`Impossible to define component: ${JSON.stringify(component)}`, Collection.message_type.warning);
     }
-    setupComponent(component.selector, component.template || templateString, component.options || {});
-    for (const style of styleString) { styleComponent(style) };
 }
 /**Get Component elaborated from server */
-export function serverComponent(url: string, timeoutConnection: number = 30000): Promise<Response> {
+export async function serverComponent(url: string, timeoutConnection: number = 30000): Promise<void> {
     const request = () => {
         let controller: AbortController = new AbortController();
         setTimeout(() => { controller.abort(); }, timeoutConnection);
@@ -75,24 +94,11 @@ export function serverComponent(url: string, timeoutConnection: number = 30000):
             signal: controller.signal,
         });
     };
-
     try {
-        return request().then((response) => {
-            if (response.ok) {
-                response.json().then((template) => {
-                    if ("tag" in template && "code" in template)
-                        defineComponent(template);
-                    else
-                        log(`Impossible to define as component: ${JSON.stringify(template)}`, Collection.message_type.warning);
-                });
-            } else {
-                log(response.text, Collection.message_type.server_error);
-                throw response;
-            }
-            return response;
-        });
+        await request()
+            .then(res => res.ok ? res.json() : log(res.text, Collection.message_type.server_error))
+            .then(component => defineComponent(component));
     } catch (ex) {
         log(ex, Collection.message_type.error);
-        throw ex;
     }
 }

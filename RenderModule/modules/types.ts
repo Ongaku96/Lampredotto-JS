@@ -169,6 +169,56 @@ class StringAction {
         }
     }
 }
+/**Interface for starting the component by class */
+abstract class iComponent {
+    private inputs: string[] = [];
+    constructor(...inputs: string[]) {
+        this.inputs = inputs;
+    }
+    /**Convert object properties to TemplateOptions */
+    public toTemplateOptions(): TemplateOptions {
+        var props = Object.getOwnPropertyNames(this);
+        // var actions = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
+        var options: TemplateOptions = {
+            inputs: this.inputs,
+            dataset: {},
+            computed: {},
+            actions: {},
+            events: this.events ? this.events() : [],
+            settings: this.settings ? this.settings() : new Settings(),
+        }
+        props.forEach((key: string) => {
+            if (key != "properties") {
+                var desc = Object.getOwnPropertyDescriptor(this, key);
+                if (desc && "get" in desc) {
+                    Reflect.set(options.computed, key, desc.get);
+                } else {
+                    if (options.dataset)
+                        Reflect.set(options.dataset, key, Reflect.get(this, key));
+                }
+            }
+        });
+        // actions = actions.filter(a => a !== "getComponentOptions" &&
+        //     a !== "settings" &&
+        //     a !== "events" &&
+        //     a !== "constructor");
+        var clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+
+        delete clone.getComponentOptions;
+        delete clone.settings;
+        delete clone.events;
+        delete clone.constructor;
+        for (const key of props) {
+            delete clone[key];
+        }
+        options.actions = clone;
+        return options;
+    }
+    /**Define component events list */
+    public abstract events(): iEvent<any>[];
+    /**Define component internal settings */
+    public abstract settings(): Settings;
+}
 
 //#region INTERFACES
 
@@ -248,21 +298,32 @@ type ReactivityOptions = {
     handler?: EventHandler,
     update?: UpdateOptions
 }
-
-type TemplateOptions = {
-    dataset?: DataCollection,
-    settings?: Settings,
-    properties?: string[],
-    events?: iEvent<any>[],
-    actions?: any,
-    computed?: any,
-}
+/**NOT IMPLEMENTED */
 type UpdateOptions = {
     include?: string[],
     exclude?: string[],
     parameter?: string,
     propagate?: boolean
 }
+/**Set of data to define component's properties*/
+type TemplateOptions = {
+    dataset?: DataCollection,
+    settings?: Settings,
+    inputs?: string[],
+    events?: iEvent<any>[],
+    actions?: any,
+    computed?: any,
+}
+/**Set of parameters for defining new component */
+type ComponentOptions = {
+    selector: string,
+    template?: string,
+    templatePath?: string,
+    styles?: string[],
+    stylesPath?: string,
+    options?: TemplateOptions,
+    class?: iComponent
+};
 //#endregion
 
 type DataCollection = {
@@ -295,17 +356,6 @@ type QueryElement = {
     nodeName: string
 }
 
-type ComponentOptions = {
-    selector: string,
-    template?: string,
-    templatePath?: string,
-    styles?: string,
-    stylesPath?: string,
-    options?: TemplateOptions,
-    class?: object
-};
-
-
-export { Settings, StringAction, ApplicationBuilder } //classes
+export { Settings, StringAction, ApplicationBuilder, iComponent } //classes
 export type { iPrototype, iEvent, iCommand, iTemplate } //interfaces
 export type { Formatter, ReactivityOptions, CommandOptions, TemplateOptions, UpdateOptions, DataCollection, QueryElement, ComponentOptions } //types

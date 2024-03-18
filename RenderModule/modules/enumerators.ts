@@ -122,7 +122,9 @@ export namespace Collection {
         /**Triggered on application setup */
         setup = "setup",
         /**Triggered on application render */
-        render = "render"
+        render = "render",
+        /**Triggered when a new component is loaded*/
+        component = "component"
     }
 
     export enum debug_mode {
@@ -227,5 +229,4 @@ export const command_matches: { key: RegExp, value: Command }[] = [
     { key: cIf.regexp, value: new cIf() },
     { key: cBind.regexp, value: new cBind() },
 ];
-
 //#endregion

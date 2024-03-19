@@ -1,6 +1,6 @@
 import { iTemplate } from "./types";
 import { vNode } from "./virtualizer";
-import { floatingMenuManagement, closeFloatingItems } from "../components/floating/floating.component.js";
+import { floatingMenuManagement, closeFloatingItems } from "../components/float.component/float.component.js";
 
 declare global {
     interface String {

@@ -1,5 +1,5 @@
 import "./modules/global.js";
-import "./components/lamp.components.js";
+import "./components/default.components.js";
 import EventHandler from "./modules/events.js";
 import { ApplicationBuilder, ComponentOptions } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";

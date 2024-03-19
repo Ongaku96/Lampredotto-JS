@@ -1,5 +1,5 @@
 import "./modules/global.js";
-import "./components/lamp.components.js";
+import "./components/default.components.js";
 import EventHandler from "./modules/events.js";
 import { ApplicationBuilder } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";
@@ -69,7 +69,7 @@ export async function defineComponent(component) {
             styleComponent(style);
         }
         ;
-        document.dispatchEvent(new CustomEvent(Collection.application_event.component, { detail: component.selector }));
+        document.dispatchEvent(new CustomEvent("component", { detail: component.selector }));
     }
     else {
         log(`Impossible to define component: ${JSON.stringify(component)}`, Collection.message_type.warning);

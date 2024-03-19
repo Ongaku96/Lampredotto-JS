@@ -19,19 +19,21 @@ export const menu_keys = {
 /**Setup of floating elements position and */
 export function floatingMenuManagement(evt: Event) {
     var clickedElement = <HTMLElement>evt.target;
+    let _parent = clickedElement?.closest(menu_keys.query(menu_keys.container));
+
+    if (isUnfocused()) { closeOpenedMenus(clickedElement); return; }
+    if (isToggle()) {
+        closeOpenedMenus(clickedElement);
+        if (_parent && _parent.getAttribute(menu_keys.container) != "show") {
+            let _item = <HTMLElement>_parent.querySelector(menu_keys.query(menu_keys.item));
+            if (_item) openFloatingMenu(_item);
+        }
+    }
     function isUnfocused() {
         if (clickedElement) {
             let virtualCondition = "virtual" in clickedElement ?
-                !clickedElement.virtual?.childOf({
-                    attribute: menu_keys.item,
-                    class: "",
-                    nodeName: ""
-                }) &&
-                !clickedElement.virtual?.childOf({
-                    attribute: menu_keys.toggle,
-                    class: "",
-                    nodeName: ""
-                }) : true;
+                !clickedElement.virtual?.childOf({ attribute: menu_keys.item }) &&
+                !clickedElement.virtual?.childOf({ attribute: menu_keys.toggle }) : true;
 
             return virtualCondition;
         }
@@ -40,22 +42,8 @@ export function floatingMenuManagement(evt: Event) {
     function isToggle() {
         if (clickedElement) {
             return clickedElement.closest(menu_keys.query(menu_keys.toggle)) != null ||
-                "virtual" in clickedElement && clickedElement.virtual?.childOf({
-                    attribute: menu_keys.toggle,
-                    class: "",
-                    nodeName: ""
-                });
+                "virtual" in clickedElement && clickedElement.virtual?.childOf({ attribute: menu_keys.toggle });
         } return false;
-    }
-
-    if (isUnfocused()) { closeOpenedMenus(clickedElement); return; }
-    if (isToggle()) {
-        closeOpenedMenus(clickedElement);
-        let _parent = clickedElement?.closest(menu_keys.query(menu_keys.container));
-        if (_parent && _parent.getAttribute(menu_keys.container) != "show") {
-            let _item = <HTMLElement>_parent.querySelector(menu_keys.query(menu_keys.item));
-            if (_item) openFloatingMenu(_item);
-        }
     }
 }
 /**open a floating menu */

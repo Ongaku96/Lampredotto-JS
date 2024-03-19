@@ -1,2 +1,2 @@
-import "./block.comoponent/group.component.js";
-import "./floating.comoponent/float.component.js";
+import "./group.component/group.component.js";
+import "./float.component/float.component.js";

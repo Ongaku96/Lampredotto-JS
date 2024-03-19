@@ -499,7 +499,9 @@ export class vNode {
     /**Check in original document if this element or its parents has one or more specified tag properties between class, nodeName and attributes */
     childOf(query: QueryElement): boolean {
         var isChild = (element: HTMLElement) => {
-            return element.hasAttribute(query.attribute) || element.nodeName == query.nodeName || element.className.includes(query.class);
+            return query.attribute ? element.hasAttribute(query.attribute) : false ||
+                element.nodeName == query.nodeName ||
+                query.class ? element.className.includes(query.class || "") : false;
         }
         return this.isElement && isChild(<HTMLElement>this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
     }

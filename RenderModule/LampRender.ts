@@ -71,7 +71,7 @@ export async function defineComponent(component: ComponentOptions): Promise<void
 
         setupComponent(component.selector, template, component.options || component.class?.toTemplateOptions() || {});
         for (const style of styles) { styleComponent(style) };
-        document.dispatchEvent(new CustomEvent(Collection.application_event.component, { detail: component.selector }));
+        document.dispatchEvent(new CustomEvent("component", { detail: component.selector }));
     } else {
         log(`Impossible to define component: ${JSON.stringify(component)}`, Collection.message_type.warning);
     }

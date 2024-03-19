@@ -351,9 +351,9 @@ type ViewSettings = {
 }
 
 type QueryElement = {
-    attribute: string,
-    class: string,
-    nodeName: string
+    attribute?: string,
+    class?: string,
+    nodeName?: string
 }
 
 export { Settings, StringAction, ApplicationBuilder, iComponent } //classes

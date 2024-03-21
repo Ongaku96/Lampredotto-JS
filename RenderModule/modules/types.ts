@@ -170,10 +170,13 @@ class StringAction {
     }
 }
 /**Interface for starting the component by class */
-abstract class iComponent {
-    private inputs: string[] = [];
+abstract class iComponent implements DataCollection {
+
+    private _inputs: string[] = [];
+    get inputs() { return this._inputs; }
+
     constructor(...inputs: string[]) {
-        this.inputs = inputs;
+        this._inputs = inputs;
     }
     /**Convert object properties to TemplateOptions */
     public toTemplateOptions(): TemplateOptions {
@@ -276,7 +279,7 @@ interface iEvent<T> {
 interface iTemplate {
     name: string,
     template: string,
-    options?: TemplateOptions
+    options?: TemplateOptions | iComponent
 }
 
 //#endregion

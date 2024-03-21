@@ -1,6 +1,6 @@
-import { TemplateOptions } from "./types.js";
+import { iComponent, TemplateOptions } from "./types.js";
 
-function setup(selector: string, template: string, options: TemplateOptions): void {
+function setup(selector: string, template: string, options: TemplateOptions | iComponent): void {
     if (globalThis.my_components == null) globalThis.my_components = [];
     my_components.push({ name: selector, template: template, options: options });
 }

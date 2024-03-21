@@ -69,7 +69,7 @@ export async function defineComponent(component: ComponentOptions): Promise<void
                 .then((css) => { styles = css ? [css] : component.styles || []; })
         }
 
-        setupComponent(component.selector, template, component.options || component.class?.toTemplateOptions() || {});
+        setupComponent(component.selector, template, component.options || component.class || {});
         for (const style of styles) { styleComponent(style) };
         document.dispatchEvent(new CustomEvent("component", { detail: component.selector }));
     } else {
@@ -100,5 +100,20 @@ export async function serverComponent(url: string, timeoutConnection: number = 3
             .then(component => defineComponent(component));
     } catch (ex) {
         log(ex, Collection.message_type.error);
+    }
+}
+/**Decorator for component initialization */
+export function lampComponent(args: Partial<ComponentOptions>) {
+    return (constructor: Function) => {
+        if (args.selector) {
+            defineComponent({
+                selector: args.selector,
+                template: args.template,
+                templatePath: args.templatePath,
+                styles: args.styles,
+                stylesPath: args.stylesPath,
+                class: Object.create(Object.getPrototypeOf(constructor))
+            });
+        }
     }
 }

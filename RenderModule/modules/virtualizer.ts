@@ -1,5 +1,5 @@
 import { Support } from "./library.js";
-import { DataCollection, QueryElement, ReactivityOptions, Settings, TemplateOptions, UpdateOptions } from "./types.js";
+import { DataCollection, iComponent, QueryElement, ReactivityOptions, Settings, TemplateOptions, UpdateOptions } from "./types.js";
 import { Collection, command_matches } from "./enumerators.js";
 import { Application } from "./application.js";
 import { Command, CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
@@ -23,7 +23,7 @@ export class vNode {
     /**Get if node element have dynamic elements or not */
     public static: boolean;
     /**Data context of node */
-    public context: DataCollection = {};
+    public context: DataCollection | iComponent = {};
     /**Settings of node */
     public settings: Settings = new Settings();
     //#endregion
@@ -519,24 +519,28 @@ export class vTemplate extends vNode {
         data?: DataCollection,
         actions?: DataCollection,
         computed?: DataCollection
-    } = {};//base dataset for context
+    } | iComponent = {};//base dataset for context
 
-    constructor(reference: Node, template: string, options: TemplateOptions | undefined, parent?: vNode) {
+    constructor(reference: Node, template: string, options: TemplateOptions | iComponent | undefined, parent?: vNode) {
         super(reference, parent);
-        if (options && "settings" in options) this.updateSettings(<Settings>options?.settings);
+        if (options && "settings" in options) this.updateSettings(options instanceof iComponent ? options.settings() : <Settings>options?.settings);
         this.createTemplate(reference, template, options);
         this.load();
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
 
     /**Prepare template data for processing */
-    createTemplate(original: Node, template: string, options: TemplateOptions | undefined) {
+    createTemplate(original: Node, template: string, options: TemplateOptions | iComponent | undefined) {
         this.template = template;
 
-        this.dataset = {
-            data: options?.dataset,
-            actions: options?.actions,
-            computed: options?.computed
+        if (options instanceof iComponent) {
+            this.dataset = options
+        } else {
+            this.dataset = {
+                data: options?.dataset,
+                actions: options?.actions,
+                computed: options?.computed
+            }
         }
 
         this.setupAttributes(options, original);
@@ -604,15 +608,14 @@ export class vTemplate extends vNode {
         }
     }
 
-    private setupEvents(options: TemplateOptions | undefined) {
-        if (options?.events) {
-            for (let event of options.events) {
-                this._handler.on(event.name, event.action);
-            }
+    private setupEvents(options: TemplateOptions | iComponent | undefined) {
+        var eventList = options?.events instanceof iComponent ? (<iComponent>options).events() : (<TemplateOptions>options)?.events || [];
+        for (let event of eventList) {
+            this._handler.on(event.name, event.action);
         }
     }
 
-    private setupAttributes(options: TemplateOptions | undefined, original: Node) {
+    private setupAttributes(options: TemplateOptions | iComponent | undefined, original: Node) {
         if (options?.inputs) {
             let _attributes = (<Element>original).getAttributeNames();
             for (const attr of options.inputs) {
@@ -664,46 +667,63 @@ export class vTemplate extends vNode {
     private async buildContext(): Promise<DataCollection> {
         this.state = Collection.lifecycle.context_creating;
         let _update: UpdateOptions | undefined;
+        const newLocal = { handler: this._handler, node: this, update: _update };
 
-        return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
-            .then((output) => {
-                output[Collection.KeyWords.node] = this;
-                output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
-                output[Collection.KeyWords.app] = this.application;
+        if (this.dataset instanceof iComponent) {
+            Object.defineProperty(this.dataset, Collection.KeyWords.node, this);
+            Object.defineProperty(this.dataset, Collection.KeyWords.reference, this.firstChild?.virtual?.firstChild || document.body);
+            Object.defineProperty(this.dataset, Collection.KeyWords.app, this.application || {});
 
-                for (const attr of this.attributes) {
+            injectInputContextReferences(this, this.dataset);
+            this.state = Collection.lifecycle.context_created;
+            return react(this.dataset, newLocal);;
 
-                    if (!(attr.prop in output && attr.name == "")) {
+        } else {
+            return Support.elaborateContext({}, this.dataset.data, newLocal, this.dataset.actions, this.dataset.computed)
+                .then((output) => {
+                    output[Collection.KeyWords.node] = this;
+                    output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
+                    output[Collection.KeyWords.app] = this.application;
 
-                        let _options: ReactivityOptions = {
-                            handler: this._handler,
-                            node: this,
-                            get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
-                                if (attr.ref) {
-                                    return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
-                                }
-                                return Support.getValue(_target, _vault_key + "." + _key);
-                            },
-                            set: (_target: any, _key: any, newvalue: any) => {
-                                if (attr.dynamic && attr.ref != null) {
-                                    if (Reflect.get(this.context, attr.ref) !== newvalue) Support.setValue(this.context, attr.ref, newvalue);
-                                } else {
-                                    if (Reflect.get(_target, _key) !== newvalue) Support.setValue(_target, _vault_key + "." + _key, newvalue);
-                                }
+                    injectInputContextReferences(this, output);
 
+                    return react(output, newLocal);
+                }).then((context) => {
+                    this.state = Collection.lifecycle.context_created;
+                    return context
+                });
+        }
+
+        function injectInputContextReferences(tnode: vTemplate, output: DataCollection) {
+            for (const attr of tnode.attributes) {
+
+                if (!(attr.prop in output && attr.name == "")) {
+
+                    let _options: ReactivityOptions = {
+                        handler: tnode._handler,
+                        node: tnode,
+                        get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
+                            if (attr.ref) {
+                                return attr.dynamic ? elaborateContent(attr.ref, tnode.context) : "";
                             }
-                        };
+                            return Support.getValue(_target, _vault_key + "." + _key);
+                        },
+                        set: (_target: any, _key: any, newvalue: any) => {
+                            if (attr.dynamic && attr.ref != null) {
+                                if (Reflect.get(tnode.context, attr.ref) !== newvalue) Support.setValue(tnode.context, attr.ref, newvalue);
+                            } else {
+                                if (Reflect.get(_target, _key) !== newvalue) Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                            }
 
-                        //output[attr.prop] = attr.ref;
-                        ref(output, attr.prop, attr.ref, _options);
-                        if (attr.name && this.reference.length > 0) (<Element>this.reference[0]).removeAttribute(attr.name);
-                    }
+                        }
+                    };
+
+                    //output[attr.prop] = attr.ref;
+                    ref(output, attr.prop, attr.ref, _options);
+                    if (attr.name && tnode.reference.length > 0) (<Element>tnode.reference[0]).removeAttribute(attr.name);
                 }
-                return react(output, { handler: this._handler });
-            }).then((context) => {
-                this.state = Collection.lifecycle.context_created;
-                return context
-            });
+            }
+        }
     }
 
     protected async elaborateContext(context?: DataCollection | undefined): Promise<void> {

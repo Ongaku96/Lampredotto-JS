@@ -1,135 +1,54 @@
 import ConnectionHandler from "./modules/connection.js";
-import { Options } from "./modules/types.js";
+import { GetService } from "./modules/get.js";
+import { PostService } from "./modules/post.js";
+import { default_timer } from "./modules/references.js";
+import { UploadService } from "./modules/upload.js";
 
 export default class Service {
 
-    private connectionTimeout?: ConnectionHandler;
-
+    private connectionTimer: number = default_timer;
+    //#region  SINGLETON
     private static _instance: Service | null = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
     static get instance() {
-        if (this._instance == null) this._instance = new Service(new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, 30000) }));
+        if (this._instance == null) this._instance = new Service();
         return this._instance;
     }
     /**Instance new server service with personalized connection timeout rule */
-    static Instance(connectionTimeout?: ConnectionHandler) {
-        return new Service(connectionTimeout);
+    static Instance(connectionTimer?: number) {
+        return new Service(connectionTimer);
     }
+    private constructor(connectionTimer?: number) {
+        if (connectionTimer != null) this.connectionTimer = connectionTimer;
+    }
+    //#endregion
 
-    private constructor(connectionAbortRule?: ConnectionHandler) {
-        this.connectionTimeout = connectionAbortRule;
-    }
-
-    /**Return Fetch request to the server, return fetch async object*/
-    public request = (options: Options) => {
-        let controller = this.connectionTimeout?.clone();
-        if (controller) controller.run();
-        return fetch(options.url, {
-            method: options.method || "GET",
-            mode: options.mode || "cors",
-            cache: options.cache || "no-cache",
-            credentials: options.credentials || "same-origin",
-            headers: options.headers || {
-                "Content-Type": "application-json",
-            },
-            redirect: options.redirect || "follow",
-            referrerPolicy: options.policy || "no-referrer",
-            body: options.data,
-            signal: controller?.signal,
-        });
-    }
     /**POST request with JSON data*/
-    async post(url: string, data?: Object, success_callback?: Function, error_callback?: Function) {
-        try {
-            return this.request({
-                url: url,
-                method: "POST",
-                data: JSON.stringify(data)
-            }).then((response) => {
-                if (response.ok) {
-                    if (success_callback) success_callback(response);
-                } else {
-                    if (error_callback) error_callback(response);
-                }
-                return response;
-            });
-        } catch (ex) {
-            console.error("LAMP Ajax: POST REQUEST - " + ex);
-            throw ex;
-        }
+    async post(url: string, data?: Object): Promise<Response> {
+        return this.postInstance(url, data).fetch();
     }
     /**GET request */
-    async get(url: string, success_callback?: Function, error_callback?: Function) {
-        try {
-            return this.request({
-                url: url,
-                method: "GET"
-            }).then((response) => {
-                if (response.ok) {
-                    if (success_callback) success_callback(response);
-                } else {
-                    if (error_callback) error_callback(response);
-                }
-                return response;
-            });
-        } catch (ex) {
-            console.error("LAMP Ajax: GET REQUEST - " + ex);
-            throw ex;
-        }
+    async get(url: string): Promise<Response> {
+        return this.getInstance(url).fetch();
     }
     /**POST request with FormData*/
-    async upload(url: string, data: FormData, success_callback: Function, error_callback?: Function) {
-        try {
-            return this.request({
-                url: url,
-                method: "POST",
-                data: data,
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                }
-            }).then((response) => {
-                if (response.ok) {
-                    if (success_callback) success_callback(response.json());
-                } else {
-                    if (error_callback) error_callback(response);
-                }
-                return response;
-            });
-        } catch (ex) {
-            console.error("LAMP Ajax: PUT REQUEST - " + ex);
-            throw ex;
-        }
+    async upload(url: string, data: FormData): Promise<Response> {
+        return this.uploadInstance(url, data).fetch();
     }
     /**Load server html into the first HTML Element that match the selector */
-    async load(selector: string, url: string, success_callback?: Function, error_callback?: Function) {
-        try {
-            let _view = document.querySelector(selector);
-            if (_view != null) {
-                return this.request({ url: url }).then(async (response) => {
-                    if (response.ok) {
-                        let _content = await response.json();
-                        if (_view) "virtual" in _view ? (<any>_view.virtual).replaceHtmlContent(_content) : _view.outerHTML = _content;
-                        if (success_callback)
-                            success_callback(new Response(JSON.stringify(response)));
-                    } else {
-                        if (error_callback)
-                            error_callback(new Response(JSON.stringify(response), { status: 0, statusText: "An error occourred while loading view " + selector }));
-                    }
-                    return response;
-                });
-            } else {
-                if (error_callback)
-                    error_callback(new Response(JSON.stringify(selector), { status: 0, statusText: "There was no element that match the selector " + selector }));
-                return null;
-            }
-        } catch (ex) {
-            console.error("LAMP Ajax: LOAD - " + ex);
-            throw ex;
+    async load(selector: string, url: string): Promise<void> {
+        let _view = document.querySelector(selector);
+        if (_view != null) {
+            this.getText(url).then(async (content) => {
+                "virtual" in _view ? (<any>_view.virtual).replaceHtmlContent(content) : _view.outerHTML = content;
+            }).catch((error) => { throw error; });
+        } else {
+            throw new Error("There was no element that match the selector " + selector);
         }
     }
     /**Generate an HTML element that run a script using src */
     async runScript(url: string, success_callback?: Function, error_callback?: Function) {
-        let controller = this.connectionTimeout?.clone();
+        let controller = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, this.connectionTimer); });
         controller?.run();
         var script = createScript();
         var prior = document.getElementsByTagName('script')[0];
@@ -160,8 +79,38 @@ export default class Service {
             return script;
         }
     }
-    /**Build url with search parameters created by dataset*/
-    static buildUrl(base: string, data: string | URLSearchParams | Record<string, string> | string[][] | undefined) {
-        return base + "?" + new URLSearchParams(data).toString();
+
+    async getJson(url: string): Promise<object | undefined> {
+        return this.getInstance(url).json();
+    }
+    async getBlob(url: string): Promise<Blob> {
+        return this.getInstance(url).blob();
+    }
+    async getArrayBuffer(url: string): Promise<ArrayBuffer> {
+        return this.getInstance(url).arrayBuffer();
+    }
+    async getText(url: string): Promise<string> {
+        return this.getInstance(url).text();
+    }
+    async getObjectUrl(url: string): Promise<string> {
+        return this.getInstance(url).objectUrl();
+    }
+
+
+    private getInstance(url: string) {
+        var service = new GetService(url);
+        if (this.connectionTimer != null) service.setConnectionTimeout(this.connectionTimer);
+        return service;
+    }
+    private postInstance(url: string, data?: object) {
+        var service = new PostService(url, data);
+        if (this.connectionTimer != null) service.setConnectionTimeout(this.connectionTimer);
+        return service;
+    }
+
+    private uploadInstance(url: string, data: FormData) {
+        var service = new UploadService(url, data);
+        if (this.connectionTimer != null) service.setConnectionTimeout(this.connectionTimer);
+        return service;
     }
 }

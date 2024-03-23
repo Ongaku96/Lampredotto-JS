@@ -10,24 +10,26 @@ export const _proxy_key = "__proxy";
 export function ref(target: any, key: string, value: any = null, options?: ReactivityOptions): void {
     if (target[_vault_key] == null) target[_vault_key] = {};
     Support.setValue(target[_vault_key], key, value);
-
-    Object.defineProperty(target, key, {
+    const reactiveProperty: PropertyDescriptor & ThisType<any> = {
         get() {
             if (options && options.get != null)
                 return options?.get(target, key);
+
             else
-                return trigger(target, _vault_key + "." + key, options);
+                return trigger(target[_vault_key], key, options);
         },
         set(newvalue) {
             if (target[key] != newvalue) {
                 if (options && options.set != null)
                     options?.set(target, key, newvalue);
+
                 else
-                    track(target, _vault_key + "." + key, newvalue, options);
+                    track(target[_vault_key], key, newvalue, options);
             }
             return true;
         }
-    });
+    };
+    Object.defineProperty(target, key, reactiveProperty);
 }
 /**Keep objects reactive to change in order to trigger interface update */
 export function react(obj: any, options?: ReactivityOptions): ProxyConstructor {

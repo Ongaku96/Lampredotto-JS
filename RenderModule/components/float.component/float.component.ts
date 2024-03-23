@@ -1,4 +1,4 @@
-import { defineComponent, lampComponent } from "../../LampRender.js";
+import { defineComponent } from "../../LampRender.js";
 
 defineComponent({
     selector: "float-container",

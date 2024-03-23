@@ -170,15 +170,21 @@ class StringAction {
     }
 }
 /**Interface for starting the component by class */
-abstract class iComponent implements DataCollection {
+abstract class iComponent implements DataCollection, iNodeReferences {
 
     private _inputs: string[] = [];
     get inputs() { return this._inputs; }
+    get events() { return this.nodeEvents ? this.nodeEvents() : []; }
+    get settings() { return this.nodeSettings ? this.nodeSettings() : new Settings(); }
+
+    __app: Application | undefined;
+    __element: Element | undefined;
+    __node?: vNode | undefined;
 
     constructor(...inputs: string[]) {
         this._inputs = inputs;
     }
-    /**Convert object properties to TemplateOptions */
+    /**!OBSOLETE! - Convert object properties to TemplateOptions */
     public toTemplateOptions(): TemplateOptions {
         var props = Object.getOwnPropertyNames(this);
         // var actions = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
@@ -187,8 +193,8 @@ abstract class iComponent implements DataCollection {
             dataset: {},
             computed: {},
             actions: {},
-            events: this.events ? this.events() : [],
-            settings: this.settings ? this.settings() : new Settings(),
+            events: this.events,
+            settings: this.settings,
         }
         props.forEach((key: string) => {
             if (key != "properties") {
@@ -218,9 +224,9 @@ abstract class iComponent implements DataCollection {
         return options;
     }
     /**Define component events list */
-    public abstract events(): iEvent<any>[];
+    public abstract nodeEvents(): iEvent<any>[];
     /**Define component internal settings */
-    public abstract settings(): Settings;
+    public abstract nodeSettings(): Settings;
 }
 
 //#region INTERFACES
@@ -279,7 +285,13 @@ interface iEvent<T> {
 interface iTemplate {
     name: string,
     template: string,
-    options?: TemplateOptions | iComponent
+    options?: TemplateOptions
+}
+
+interface iNodeReferences {
+    __app: Application | undefined,
+    __element: Element | undefined,
+    __node?: vNode
 }
 
 //#endregion

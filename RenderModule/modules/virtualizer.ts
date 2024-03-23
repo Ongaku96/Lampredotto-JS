@@ -1,5 +1,5 @@
 import { Support } from "./library.js";
-import { DataCollection, iComponent, QueryElement, ReactivityOptions, Settings, TemplateOptions, UpdateOptions } from "./types.js";
+import { DataCollection, iComponent, iEvent, QueryElement, ReactivityOptions, Settings, TemplateOptions, UpdateOptions } from "./types.js";
 import { Collection, command_matches } from "./enumerators.js";
 import { Application } from "./application.js";
 import { Command, CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
@@ -23,7 +23,7 @@ export class vNode {
     /**Get if node element have dynamic elements or not */
     public static: boolean;
     /**Data context of node */
-    public context: DataCollection | iComponent = {};
+    public context: DataCollection = {};
     /**Settings of node */
     public settings: Settings = new Settings();
     //#endregion
@@ -74,7 +74,7 @@ export class vNode {
     /**Get if node is application root */
     get root(): boolean { return this.parent == null; }
     /**Get this application root virtual node */
-    get application(): Application | undefined { return this.parent?.context.__app || undefined; }
+    get application(): Application | undefined { return this.parent?.context[Collection.KeyWords.app] || undefined; }
     //#endregion
 
     constructor(original: Node, parent?: vNode) {
@@ -515,36 +515,28 @@ export class vTemplate extends vNode {
     private template: string = ""; // component's html code
     private vtemplate_children: vNode[] = []; //component's vDOM children only
     private attributes: { name: string, prop: string, ref: string | null | undefined, dynamic: boolean | undefined }[] = [];; //component's paramters
-    private dataset: {
-        data?: DataCollection,
-        actions?: DataCollection,
-        computed?: DataCollection
-    } | iComponent = {};//base dataset for context
+    private data_options: Partial<TemplateOptions> = {};//base dataset for context
 
-    constructor(reference: Node, template: string, options: TemplateOptions | iComponent | undefined, parent?: vNode) {
+    constructor(reference: Node, template: string, options: TemplateOptions | undefined, parent?: vNode) {
         super(reference, parent);
-        if (options && "settings" in options) this.updateSettings(options instanceof iComponent ? options.settings() : <Settings>options?.settings);
         this.createTemplate(reference, template, options);
         this.load();
         this._handler.on(Collection.application_event.update, () => { this.update(); });
     }
 
     /**Prepare template data for processing */
-    createTemplate(original: Node, template: string, options: TemplateOptions | iComponent | undefined) {
+    createTemplate(original: Node, template: string, options: TemplateOptions | undefined) {
         this.template = template;
 
-        if (options instanceof iComponent) {
-            this.dataset = options
-        } else {
-            this.dataset = {
-                data: options?.dataset,
-                actions: options?.actions,
-                computed: options?.computed
-            }
+        this.data_options = options instanceof iComponent ? options : {
+            dataset: options?.dataset,
+            actions: options?.actions,
+            computed: options?.computed
         }
 
-        this.setupAttributes(options, original);
-        this.setupEvents(options);
+        if (options && options.settings != null) this.updateSettings(<Settings>options?.settings);
+        if (options && options.inputs != null) this.setupAttributes(options.inputs, original);
+        if (options && options.events != null) this.setupEvents(options.events);
 
         this._incubator = this.getRender();
         if (!this.commandDriven)
@@ -608,34 +600,31 @@ export class vTemplate extends vNode {
         }
     }
 
-    private setupEvents(options: TemplateOptions | iComponent | undefined) {
-        var eventList = options?.events instanceof iComponent ? (<iComponent>options).events() : (<TemplateOptions>options)?.events || [];
+    private setupEvents(eventList: iEvent<any>[]) {
         for (let event of eventList) {
             this._handler.on(event.name, event.action);
         }
     }
 
-    private setupAttributes(options: TemplateOptions | iComponent | undefined, original: Node) {
-        if (options?.inputs) {
-            let _attributes = (<Element>original).getAttributeNames();
-            for (const attr of options.inputs) {
-                let _attribute = _attributes.find(a => a.includes(attr));
+    private setupAttributes(inputs: string[], original: Node) {
+        let _attributes = (<Element>original).getAttributeNames();
+        for (const attr of inputs) {
+            let _attribute = _attributes.find(a => a.includes(attr));
 
-                if (_attribute != null) {
-                    this.attributes.push({
-                        name: _attribute,
-                        prop: attr,
-                        ref: this.element?.getAttribute(_attribute),
-                        dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
-                    });
-                } else {
-                    this.attributes.push({
-                        name: "",
-                        prop: attr,
-                        ref: null,
-                        dynamic: false
-                    });
-                }
+            if (_attribute != null) {
+                this.attributes.push({
+                    name: _attribute,
+                    prop: attr,
+                    ref: this.element?.getAttribute(_attribute),
+                    dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
+                });
+            } else {
+                this.attributes.push({
+                    name: "",
+                    prop: attr,
+                    ref: null,
+                    dynamic: false
+                });
             }
         }
     }
@@ -669,24 +658,68 @@ export class vTemplate extends vNode {
         let _update: UpdateOptions | undefined;
         const newLocal = { handler: this._handler, node: this, update: _update };
 
-        if (this.dataset instanceof iComponent) {
-            Object.defineProperty(this.dataset, Collection.KeyWords.node, this);
-            Object.defineProperty(this.dataset, Collection.KeyWords.reference, this.firstChild?.virtual?.firstChild || document.body);
-            Object.defineProperty(this.dataset, Collection.KeyWords.app, this.application || {});
+        if (this.data_options instanceof iComponent) { //definition by class
 
-            injectInputContextReferences(this, this.dataset);
+            for (const key of Object.getOwnPropertyNames(this.data_options)) {
+                if (Support.isPrimitive(Reflect.get(this.data_options, key))) ref(this.data_options, key, Reflect.get(this.data_options, key), newLocal);
+                else Reflect.set(this.data_options, key, react(Reflect.get(this.data_options, key), newLocal));
+            }
+
+            for (const attr of this.attributes) {
+                ref(this.data_options, attr.prop, attr.ref, {
+                    handler: this._handler,
+                    node: this,
+                    get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
+                        if (attr.ref) return attr.dynamic ? elaborateContent(attr.ref, this.context) || "" : attr.ref;
+                        return Support.getValue(_target, _vault_key + "." + _key);
+                    },
+                    set: (_target: any, _key: any, newvalue: any) => {
+                        if (attr.ref != null && attr.dynamic) {
+                            if (Reflect.get(this.context, attr.ref) !== newvalue) Support.setValue(this.context, attr.ref, newvalue);
+                        } else {
+                            if (Reflect.get(_target, _key) !== newvalue) Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                        }
+                    }
+                });
+            }
+
+            this.data_options.__node = this;
+            this.data_options.__element = <Element>this.firstChild?.virtual?.firstChild;
+            this.data_options.__app = this.application;
             this.state = Collection.lifecycle.context_created;
-            return react(this.dataset, newLocal);;
-
-        } else {
-            return Support.elaborateContext({}, this.dataset.data, newLocal, this.dataset.actions, this.dataset.computed)
+            return this.data_options;
+        } else { //definition by object
+            return Support.elaborateContext({}, this.data_options.dataset, newLocal, this.data_options.actions, this.data_options.computed)
                 .then((output) => {
                     output[Collection.KeyWords.node] = this;
                     output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
                     output[Collection.KeyWords.app] = this.application;
 
-                    injectInputContextReferences(this, output);
+                    for (const attr of this.attributes) {
 
+                        if (!(attr.prop in output && attr.name == "")) {
+
+                            var options: ReactivityOptions = {
+                                handler: this._handler,
+                                node: this,
+                                get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
+                                    if (attr.ref) {
+                                        return attr.dynamic ? elaborateContent(attr.ref, this.context) || "" : attr.ref;
+                                    }
+                                    return Support.getValue(_target, _vault_key + "." + _key);
+                                },
+                                set: (_target: any, _key: any, newvalue: any) => {
+                                    if (attr.dynamic && attr.ref != null) {
+                                        if (Reflect.get(this.context, attr.ref) !== newvalue) Support.setValue(this.context, attr.ref, newvalue);
+                                    } else {
+                                        if (Reflect.get(_target, _key) !== newvalue) Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                                    }
+                                }
+                            };
+                            ref(output, attr.prop, attr.ref, options);
+                            if (attr.name && output[Collection.KeyWords.reference]) (<Element>output[Collection.KeyWords.reference]).removeAttribute(attr.name);
+                        }
+                    }
                     return react(output, newLocal);
                 }).then((context) => {
                     this.state = Collection.lifecycle.context_created;
@@ -694,36 +727,7 @@ export class vTemplate extends vNode {
                 });
         }
 
-        function injectInputContextReferences(tnode: vTemplate, output: DataCollection) {
-            for (const attr of tnode.attributes) {
 
-                if (!(attr.prop in output && attr.name == "")) {
-
-                    let _options: ReactivityOptions = {
-                        handler: tnode._handler,
-                        node: tnode,
-                        get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
-                            if (attr.ref) {
-                                return attr.dynamic ? elaborateContent(attr.ref, tnode.context) : "";
-                            }
-                            return Support.getValue(_target, _vault_key + "." + _key);
-                        },
-                        set: (_target: any, _key: any, newvalue: any) => {
-                            if (attr.dynamic && attr.ref != null) {
-                                if (Reflect.get(tnode.context, attr.ref) !== newvalue) Support.setValue(tnode.context, attr.ref, newvalue);
-                            } else {
-                                if (Reflect.get(_target, _key) !== newvalue) Support.setValue(_target, _vault_key + "." + _key, newvalue);
-                            }
-
-                        }
-                    };
-
-                    //output[attr.prop] = attr.ref;
-                    ref(output, attr.prop, attr.ref, _options);
-                    if (attr.name && tnode.reference.length > 0) (<Element>tnode.reference[0]).removeAttribute(attr.name);
-                }
-            }
-        }
     }
 
     protected async elaborateContext(context?: DataCollection | undefined): Promise<void> {

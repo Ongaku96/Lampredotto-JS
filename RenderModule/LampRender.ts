@@ -106,14 +106,13 @@ export async function serverComponent(url: string, timeoutConnection: number = 3
 export function lampComponent(args: Partial<ComponentOptions>) {
     return (constructor: Function) => {
         if (args.selector) {
-            var component = Object.create(constructor.prototype);
             defineComponent({
                 selector: args.selector,
                 template: args.template,
                 templatePath: args.templatePath,
                 styles: args.styles,
                 stylesPath: args.stylesPath,
-                class: component //
+                class: Object.create(constructor.prototype).clone()
             });
         }
     }

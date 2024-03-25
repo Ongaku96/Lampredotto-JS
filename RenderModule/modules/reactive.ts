@@ -27,7 +27,8 @@ export function ref(target: any, key: string, value: any = null, options?: React
                     track(target[_vault_key], key, newvalue, options);
             }
             return true;
-        }
+        },
+        configurable: true,
     };
     Object.defineProperty(target, key, reactiveProperty);
 }

@@ -172,8 +172,8 @@ class StringAction {
 /**Interface for starting the component by class */
 abstract class iComponent implements DataCollection, iNodeReferences {
 
-    private _inputs: string[] = [];
-    get inputs() { return this._inputs; }
+    protected _inputs: string[] = [];
+    get inputs() { return this._inputs || []; }
     get events() { return this.nodeEvents ? this.nodeEvents() : []; }
     get settings() { return this.nodeSettings ? this.nodeSettings() : new Settings(); }
 
@@ -227,6 +227,10 @@ abstract class iComponent implements DataCollection, iNodeReferences {
     public abstract nodeEvents(): iEvent<any>[];
     /**Define component internal settings */
     public abstract nodeSettings(): Settings;
+
+    public clone(): this {
+        return new (this.constructor as new () => this)();
+    }
 }
 
 //#region INTERFACES

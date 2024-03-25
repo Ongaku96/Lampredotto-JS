@@ -687,7 +687,7 @@ export class vTemplate extends vNode {
             this.data_options.__element = <Element>this.firstChild?.virtual?.firstChild;
             this.data_options.__app = this.application;
             this.state = Collection.lifecycle.context_created;
-            return this.data_options;
+            return react(this.data_options, newLocal);
         } else { //definition by object
             return Support.elaborateContext({}, this.data_options.dataset, newLocal, this.data_options.actions, this.data_options.computed)
                 .then((output) => {

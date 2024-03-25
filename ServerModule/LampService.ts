@@ -40,7 +40,8 @@ export default class Service {
         let _view = document.querySelector(selector);
         if (_view != null) {
             this.getText(url).then(async (content) => {
-                "virtual" in _view ? (<any>_view.virtual).replaceHtmlContent(content) : _view.outerHTML = content;
+                if (_view)
+                    "virtual" in _view ? (<any>_view.virtual).replaceHtmlContent(content) : _view.outerHTML = content;
             }).catch((error) => { throw error; });
         } else {
             throw new Error("There was no element that match the selector " + selector);

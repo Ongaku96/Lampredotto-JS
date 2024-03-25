@@ -622,7 +622,7 @@ class cFor extends Command {
 
     sort(data: any[], node: vNode): any[] {
         try {
-            if (data && this._sort) {
+            if (data && this._sort && data.length) {
                 let _param = this._sort;
                 if (!(_param in data[0])) {
                     _param = renderBrackets(this._sort, node.context, node.settings);

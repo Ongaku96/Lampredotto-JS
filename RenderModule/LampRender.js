@@ -64,7 +64,7 @@ export async function defineComponent(component) {
                 .then(res => res.ok ? res.text() : null)
                 .then((css) => { styles = css ? [css] : component.styles || []; });
         }
-        setupComponent(component.selector, template, component.options || component.class?.toTemplateOptions() || {});
+        setupComponent(component.selector, template, component.options || component.class || {});
         for (const style of styles) {
             styleComponent(style);
         }
@@ -101,4 +101,19 @@ export async function serverComponent(url, timeoutConnection = 30000) {
     catch (ex) {
         log(ex, Collection.message_type.error);
     }
+}
+/**Decorator for component initialization */
+export function lampComponent(args) {
+    return (constructor) => {
+        if (args.selector) {
+            defineComponent({
+                selector: args.selector,
+                template: args.template,
+                templatePath: args.templatePath,
+                styles: args.styles,
+                stylesPath: args.stylesPath,
+                class: Object.create(constructor.prototype).clone()
+            });
+        }
+    };
 }

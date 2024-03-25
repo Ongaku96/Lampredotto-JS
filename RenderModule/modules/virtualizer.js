@@ -1,5 +1,5 @@
 import { Support } from "./library.js";
-import { Settings } from "./types.js";
+import { iComponent, Settings } from "./types.js";
 import { Collection, command_matches } from "./enumerators.js";
 import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
@@ -70,7 +70,7 @@ export class vNode {
     /**Get if node is application root */
     get root() { return this.parent == null; }
     /**Get this application root virtual node */
-    get application() { return this.parent?.context.__app || undefined; }
+    get application() { return this.parent?.context[Collection.KeyWords.app] || undefined; }
     //#endregion
     constructor(original, parent) {
         this.id = Support.uniqueID();
@@ -518,11 +518,9 @@ export class vTemplate extends vNode {
     vtemplate_children = []; //component's vDOM children only
     attributes = [];
     ; //component's paramters
-    dataset = {}; //base dataset for context
+    data_options = {}; //base dataset for context
     constructor(reference, template, options, parent) {
         super(reference, parent);
-        if (options && "settings" in options)
-            this.updateSettings(options?.settings);
         this.createTemplate(reference, template, options);
         this.load();
         this._handler.on(Collection.application_event.update, () => { this.update(); });
@@ -530,13 +528,17 @@ export class vTemplate extends vNode {
     /**Prepare template data for processing */
     createTemplate(original, template, options) {
         this.template = template;
-        this.dataset = {
-            data: options?.dataset,
+        this.data_options = options instanceof iComponent ? options : {
+            dataset: options?.dataset,
             actions: options?.actions,
             computed: options?.computed
         };
-        this.setupAttributes(options, original);
-        this.setupEvents(options);
+        if (options && options.settings != null)
+            this.updateSettings(options?.settings);
+        if (options && options.inputs != null)
+            this.setupAttributes(options.inputs, original);
+        if (options && options.events != null)
+            this.setupEvents(options.events);
         this._incubator = this.getRender();
         if (!this.commandDriven)
             this.vtemplate_children = this.mapTemplatechildren(this.incubator);
@@ -590,34 +592,30 @@ export class vTemplate extends vNode {
             log(ex, Collection.message_type.error);
         }
     }
-    setupEvents(options) {
-        if (options?.events) {
-            for (let event of options.events) {
-                this._handler.on(event.name, event.action);
-            }
+    setupEvents(eventList) {
+        for (let event of eventList) {
+            this._handler.on(event.name, event.action);
         }
     }
-    setupAttributes(options, original) {
-        if (options?.inputs) {
-            let _attributes = original.getAttributeNames();
-            for (const attr of options.inputs) {
-                let _attribute = _attributes.find(a => a.includes(attr));
-                if (_attribute != null) {
-                    this.attributes.push({
-                        name: _attribute,
-                        prop: attr,
-                        ref: this.element?.getAttribute(_attribute),
-                        dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
-                    });
-                }
-                else {
-                    this.attributes.push({
-                        name: "",
-                        prop: attr,
-                        ref: null,
-                        dynamic: false
-                    });
-                }
+    setupAttributes(inputs, original) {
+        let _attributes = original.getAttributeNames();
+        for (const attr of inputs) {
+            let _attribute = _attributes.find(a => a.includes(attr));
+            if (_attribute != null) {
+                this.attributes.push({
+                    name: _attribute,
+                    prop: attr,
+                    ref: this.element?.getAttribute(_attribute),
+                    dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
+                });
+            }
+            else {
+                this.attributes.push({
+                    name: "",
+                    prop: attr,
+                    ref: null,
+                    dynamic: false
+                });
             }
         }
     }
@@ -648,44 +646,80 @@ export class vTemplate extends vNode {
     async buildContext() {
         this.state = Collection.lifecycle.context_creating;
         let _update;
-        return Support.elaborateContext({}, this.dataset.data, { handler: this._handler, node: this, update: _update }, this.dataset.actions, this.dataset.computed)
-            .then((output) => {
-            output[Collection.KeyWords.node] = this;
-            output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
-            output[Collection.KeyWords.app] = this.application;
-            for (const attr of this.attributes) {
-                if (!(attr.prop in output && attr.name == "")) {
-                    let _options = {
-                        handler: this._handler,
-                        node: this,
-                        get: (_target, _key, _context) => {
-                            if (attr.ref) {
-                                return attr.dynamic ? elaborateContent(attr.ref, this.context) : attr.ref;
-                            }
-                            return Support.getValue(_target, _vault_key + "." + _key);
-                        },
-                        set: (_target, _key, newvalue) => {
-                            if (attr.dynamic && attr.ref != null) {
-                                if (Reflect.get(this.context, attr.ref) !== newvalue)
-                                    Support.setValue(this.context, attr.ref, newvalue);
-                            }
-                            else {
-                                if (Reflect.get(_target, _key) !== newvalue)
-                                    Support.setValue(_target, _vault_key + "." + _key, newvalue);
-                            }
-                        }
-                    };
-                    //output[attr.prop] = attr.ref;
-                    ref(output, attr.prop, attr.ref, _options);
-                    if (attr.name && this.reference.length > 0)
-                        this.reference[0].removeAttribute(attr.name);
-                }
+        const newLocal = { handler: this._handler, node: this, update: _update };
+        if (this.data_options instanceof iComponent) { //definition by class
+            for (const key of Object.getOwnPropertyNames(this.data_options)) {
+                if (Support.isPrimitive(Reflect.get(this.data_options, key)))
+                    ref(this.data_options, key, Reflect.get(this.data_options, key), newLocal);
+                else
+                    Reflect.set(this.data_options, key, react(Reflect.get(this.data_options, key), newLocal));
             }
-            return react(output, { handler: this._handler });
-        }).then((context) => {
+            for (const attr of this.attributes) {
+                ref(this.data_options, attr.prop, attr.ref, {
+                    handler: this._handler,
+                    node: this,
+                    get: (_target, _key, _context) => {
+                        if (attr.ref)
+                            return attr.dynamic ? elaborateContent(attr.ref, this.context) || "" : attr.ref;
+                        return Support.getValue(_target, _vault_key + "." + _key);
+                    },
+                    set: (_target, _key, newvalue) => {
+                        if (attr.ref != null && attr.dynamic) {
+                            if (Reflect.get(this.context, attr.ref) !== newvalue)
+                                Support.setValue(this.context, attr.ref, newvalue);
+                        }
+                        else {
+                            if (Reflect.get(_target, _key) !== newvalue)
+                                Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                        }
+                    }
+                });
+            }
+            this.data_options.__node = this;
+            this.data_options.__element = this.firstChild?.virtual?.firstChild;
+            this.data_options.__app = this.application;
             this.state = Collection.lifecycle.context_created;
-            return context;
-        });
+            return react(this.data_options, newLocal);
+        }
+        else { //definition by object
+            return Support.elaborateContext({}, this.data_options.dataset, newLocal, this.data_options.actions, this.data_options.computed)
+                .then((output) => {
+                output[Collection.KeyWords.node] = this;
+                output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
+                output[Collection.KeyWords.app] = this.application;
+                for (const attr of this.attributes) {
+                    if (!(attr.prop in output && attr.name == "")) {
+                        var options = {
+                            handler: this._handler,
+                            node: this,
+                            get: (_target, _key, _context) => {
+                                if (attr.ref) {
+                                    return attr.dynamic ? elaborateContent(attr.ref, this.context) || "" : attr.ref;
+                                }
+                                return Support.getValue(_target, _vault_key + "." + _key);
+                            },
+                            set: (_target, _key, newvalue) => {
+                                if (attr.dynamic && attr.ref != null) {
+                                    if (Reflect.get(this.context, attr.ref) !== newvalue)
+                                        Support.setValue(this.context, attr.ref, newvalue);
+                                }
+                                else {
+                                    if (Reflect.get(_target, _key) !== newvalue)
+                                        Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                                }
+                            }
+                        };
+                        ref(output, attr.prop, attr.ref, options);
+                        if (attr.name && output[Collection.KeyWords.reference])
+                            output[Collection.KeyWords.reference].removeAttribute(attr.name);
+                    }
+                }
+                return react(output, newLocal);
+            }).then((context) => {
+                this.state = Collection.lifecycle.context_created;
+                return context;
+            });
+        }
     }
     async elaborateContext(context) {
         await this.buildContext().then((template_context) => {

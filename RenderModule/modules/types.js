@@ -162,11 +162,17 @@ class StringAction {
 }
 /**Interface for starting the component by class */
 class iComponent {
-    inputs = [];
+    _inputs = [];
+    get inputs() { return this._inputs || []; }
+    get events() { return this.nodeEvents ? this.nodeEvents() : []; }
+    get settings() { return this.nodeSettings ? this.nodeSettings() : new Settings(); }
+    __app;
+    __element;
+    __node;
     constructor(...inputs) {
-        this.inputs = inputs;
+        this._inputs = inputs;
     }
-    /**Convert object properties to TemplateOptions */
+    /**!OBSOLETE! - Convert object properties to TemplateOptions */
     toTemplateOptions() {
         var props = Object.getOwnPropertyNames(this);
         // var actions = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
@@ -175,8 +181,8 @@ class iComponent {
             dataset: {},
             computed: {},
             actions: {},
-            events: this.events ? this.events() : [],
-            settings: this.settings ? this.settings() : new Settings(),
+            events: this.events,
+            settings: this.settings,
         };
         props.forEach((key) => {
             if (key != "properties") {
@@ -204,6 +210,9 @@ class iComponent {
         }
         options.actions = clone;
         return options;
+    }
+    clone() {
+        return new this.constructor();
     }
 }
 //#region INTERFACES

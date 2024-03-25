@@ -1,4 +1,4 @@
-import { REST } from "./types";
+import { REST } from "./types.js";
 export class UploadService extends REST {
     constructor(url, data) {
         super(url, "PUT", data);

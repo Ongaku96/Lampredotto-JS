@@ -1,5 +1,5 @@
-import ConnectionHandler from "./connection";
-import { exception } from "./references";
+import ConnectionHandler from "./connection.js";
+import { exception } from "./references.js";
 class REST {
     static timer = 30000;
     options = {

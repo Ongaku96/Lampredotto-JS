@@ -1,4 +1,4 @@
-import { default_timer } from "./references";
+import { default_timer } from "./references.js";
 
 export default class ConnectionHandler {
     private controller: AbortController;

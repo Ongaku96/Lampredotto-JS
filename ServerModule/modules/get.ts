@@ -1,5 +1,5 @@
-import { exception } from "./references";
-import { REST } from "./types";
+import { exception } from "./references.js";
+import { REST } from "./types.js";
 
 export class GetService extends REST {
 

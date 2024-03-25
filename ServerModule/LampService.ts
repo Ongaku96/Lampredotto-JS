@@ -80,19 +80,25 @@ export default class Service {
             return script;
         }
     }
-
+    /**Elaborate url as GET request and return a json object response*/
     async getJson(url: string): Promise<object | undefined> {
         return this.getInstance(url).json();
     }
+    /**Elaborate url as GET request and return a blob response*/
     async getBlob(url: string): Promise<Blob> {
         return this.getInstance(url).blob();
     }
+    /**Elaborate url as GET request and return an Array Buffer response*/
     async getArrayBuffer(url: string): Promise<ArrayBuffer> {
         return this.getInstance(url).arrayBuffer();
     }
+    /**Elaborate url as GET request and return text response */
     async getText(url: string): Promise<string> {
         return this.getInstance(url).text();
     }
+    /**Elaborate url as GET request and return an ObjectUrl
+     * *NOTES* Indicate for onscreen files preview
+     */
     async getObjectUrl(url: string): Promise<string> {
         return this.getInstance(url).objectUrl();
     }

@@ -1,4 +1,4 @@
-import { REST } from "./types";
+import { REST } from "./types.js";
 
 export const error_header: string = "LAMP Service: ";
 export const default_timer: number = 30000;

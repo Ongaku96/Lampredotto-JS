@@ -1,147 +1,55 @@
 import ConnectionHandler from "./modules/connection.js";
+import { GetService } from "./modules/get.js";
+import { PostService } from "./modules/post.js";
+import { default_timer } from "./modules/references.js";
+import { UploadService } from "./modules/upload.js";
 export default class Service {
-    connectionTimeout;
+    connectionTimer = default_timer;
+    //#region  SINGLETON
     static _instance = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
     static get instance() {
         if (this._instance == null)
-            this._instance = new Service(new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, 30000); }));
+            this._instance = new Service();
         return this._instance;
     }
     /**Instance new server service with personalized connection timeout rule */
-    static Instance(connectionTimeout) {
-        return new Service(connectionTimeout);
+    static Instance(connectionTimer) {
+        return new Service(connectionTimer);
     }
-    constructor(connectionAbortRule) {
-        this.connectionTimeout = connectionAbortRule;
+    constructor(connectionTimer) {
+        if (connectionTimer != null)
+            this.connectionTimer = connectionTimer;
     }
-    /**Return Fetch request to the server, return fetch async object*/
-    request = (options) => {
-        let controller = this.connectionTimeout?.clone();
-        if (controller)
-            controller.run();
-        return fetch(options.url, {
-            method: options.method || "GET",
-            mode: options.mode || "cors",
-            cache: options.cache || "no-cache",
-            credentials: options.credentials || "same-origin",
-            headers: options.headers || {
-                "Content-Type": "application-json",
-            },
-            redirect: options.redirect || "follow",
-            referrerPolicy: options.policy || "no-referrer",
-            body: options.data,
-            signal: controller?.signal,
-        });
-    };
+    //#endregion
     /**POST request with JSON data*/
-    async post(url, data, success_callback, error_callback) {
-        try {
-            return this.request({
-                url: url,
-                method: "POST",
-                data: JSON.stringify(data)
-            }).then((response) => {
-                if (response.ok) {
-                    if (success_callback)
-                        success_callback(response);
-                }
-                else {
-                    if (error_callback)
-                        error_callback(response);
-                }
-                return response;
-            });
-        }
-        catch (ex) {
-            console.error("LAMP Ajax: POST REQUEST - " + ex);
-            throw ex;
-        }
+    async post(url, data) {
+        return this.postInstance(url, data).fetch();
     }
     /**GET request */
-    async get(url, success_callback, error_callback) {
-        try {
-            return this.request({
-                url: url,
-                method: "GET"
-            }).then((response) => {
-                if (response.ok) {
-                    if (success_callback)
-                        success_callback(response);
-                }
-                else {
-                    if (error_callback)
-                        error_callback(response);
-                }
-                return response;
-            });
-        }
-        catch (ex) {
-            console.error("LAMP Ajax: GET REQUEST - " + ex);
-            throw ex;
-        }
+    async get(url) {
+        return this.getInstance(url).fetch();
     }
     /**POST request with FormData*/
-    async upload(url, data, success_callback, error_callback) {
-        try {
-            return this.request({
-                url: url,
-                method: "POST",
-                data: data,
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                }
-            }).then((response) => {
-                if (response.ok) {
-                    if (success_callback)
-                        success_callback(response.json());
-                }
-                else {
-                    if (error_callback)
-                        error_callback(response);
-                }
-                return response;
-            });
-        }
-        catch (ex) {
-            console.error("LAMP Ajax: PUT REQUEST - " + ex);
-            throw ex;
-        }
+    async upload(url, data) {
+        return this.uploadInstance(url, data).fetch();
     }
     /**Load server html into the first HTML Element that match the selector */
-    async load(selector, url, success_callback, error_callback) {
-        try {
-            let _view = document.querySelector(selector);
-            if (_view != null) {
-                return this.request({ url: url }).then(async (response) => {
-                    if (response.ok) {
-                        let _content = await response.json();
-                        if (_view)
-                            "virtual" in _view ? _view.virtual.replaceHtmlContent(_content) : _view.outerHTML = _content;
-                        if (success_callback)
-                            success_callback(new Response(JSON.stringify(response)));
-                    }
-                    else {
-                        if (error_callback)
-                            error_callback(new Response(JSON.stringify(response), { status: 0, statusText: "An error occourred while loading view " + selector }));
-                    }
-                    return response;
-                });
-            }
-            else {
-                if (error_callback)
-                    error_callback(new Response(JSON.stringify(selector), { status: 0, statusText: "There was no element that match the selector " + selector }));
-                return null;
-            }
+    async load(selector, url) {
+        let _view = document.querySelector(selector);
+        if (_view != null) {
+            this.getText(url).then(async (content) => {
+                if (_view)
+                    "virtual" in _view ? _view.virtual.replaceHtmlContent(content) : _view.outerHTML = content;
+            }).catch((error) => { throw error; });
         }
-        catch (ex) {
-            console.error("LAMP Ajax: LOAD - " + ex);
-            throw ex;
+        else {
+            throw new Error("There was no element that match the selector " + selector);
         }
     }
     /**Generate an HTML element that run a script using src */
     async runScript(url, success_callback, error_callback) {
-        let controller = this.connectionTimeout?.clone();
+        let controller = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, this.connectionTimer); });
         controller?.run();
         var script = createScript();
         var prior = document.getElementsByTagName('script')[0];
@@ -171,8 +79,44 @@ export default class Service {
             return script;
         }
     }
-    /**Build url with search parameters created by dataset*/
-    static buildUrl(base, data) {
-        return base + "?" + new URLSearchParams(data).toString();
+    /**Elaborate url as GET request and return a json object response*/
+    async getJson(url) {
+        return this.getInstance(url).json();
+    }
+    /**Elaborate url as GET request and return a blob response*/
+    async getBlob(url) {
+        return this.getInstance(url).blob();
+    }
+    /**Elaborate url as GET request and return an Array Buffer response*/
+    async getArrayBuffer(url) {
+        return this.getInstance(url).arrayBuffer();
+    }
+    /**Elaborate url as GET request and return text response */
+    async getText(url) {
+        return this.getInstance(url).text();
+    }
+    /**Elaborate url as GET request and return an ObjectUrl
+     * *NOTES* Indicate for onscreen files preview
+     */
+    async getObjectUrl(url) {
+        return this.getInstance(url).objectUrl();
+    }
+    getInstance(url) {
+        var service = new GetService(url);
+        if (this.connectionTimer != null)
+            service.setConnectionTimeout(this.connectionTimer);
+        return service;
+    }
+    postInstance(url, data) {
+        var service = new PostService(url, data);
+        if (this.connectionTimer != null)
+            service.setConnectionTimeout(this.connectionTimer);
+        return service;
+    }
+    uploadInstance(url, data) {
+        var service = new UploadService(url, data);
+        if (this.connectionTimer != null)
+            service.setConnectionTimeout(this.connectionTimer);
+        return service;
     }
 }

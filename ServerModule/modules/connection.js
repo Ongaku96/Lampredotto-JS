@@ -1,9 +1,10 @@
+import { default_timer } from "./references";
 export default class ConnectionHandler {
     controller;
     rule;
     get signal() { return this.controller.signal; }
     get aborted() { return this.controller.signal.aborted; }
-    constructor(rule) {
+    constructor(rule = (ctrl) => { setTimeout(() => { ctrl.abort(); }, default_timer); }) {
         this.controller = new AbortController();
         this.rule = rule;
     }

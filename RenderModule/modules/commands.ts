@@ -6,6 +6,15 @@ import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import EventHandler from "./events.js";
 
+/**
+ * Command's Interface
+ * @date 27/3/2024 - 11:42:08
+ *
+ * @abstract
+ * @class Command
+ * @typedef {Command}
+ * @implements {iCommand}
+ */
 abstract class Command implements iCommand {
 
     protected _attribute: Attr | undefined;
@@ -27,6 +36,13 @@ abstract class Command implements iCommand {
     abstract clone(_attribute: Attr): Command
 }
 
+/**
+ * Visitor template for Commands implementation
+ * @date 27/3/2024 - 11:41:39
+ *
+ * @class CommandVisitor
+ * @typedef {CommandVisitor}
+ */
 class CommandVisitor {
     private node: vNode;
 
@@ -40,7 +56,7 @@ class CommandVisitor {
         let _input = ["INPUT", "TEXTAREA", "SELECT"];
         try {
             this.setupEvents(command);
-            if (this.node.reference.length && _input.includes(this.node.nodeName)) {
+            if (this.node.reference.length && (_input.includes(this.node.nodeName) || (<HTMLElement>this.node.reference[0]).getAttribute("contenteditable"))) {
                 this.node.reference[0].addEventListener("input", function () {
                     command.updateDataSet(_me.node);
                 });
@@ -259,6 +275,14 @@ class CommandVisitor {
 
 }
 
+/**
+ * Command for data binding on Element content or input Value
+ * @date 27/3/2024 - 11:38:04
+ *
+ * @class cModel
+ * @typedef {cModel}
+ * @extends {Command}
+ */
 class cModel extends Command {
 
     static key: Readonly<string> = "cmd-model";
@@ -338,7 +362,7 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (_debug && typeof (_debug) === "string") {
+                        if (_debug && typeof (_debug) === "string" && !(<HTMLElement>node.reference[0]).getAttribute("contenteditable")) {
                             let temp = Support.templateFromString(_debug);
                             let _child = temp.firstChild;
                             if (_child) {
@@ -350,7 +374,8 @@ class cModel extends Command {
                             }
 
                         } else {
-                            if (node.reference.length) node.reference[0].nodeValue = _debug;
+                            if (node.reference.length && (<HTMLElement>node.reference[0]).innerText != _debug)
+                                (<HTMLElement>node.reference[0]).innerText = _debug;
                         }
                         break;
                 }
@@ -378,10 +403,10 @@ class cModel extends Command {
     public updateDataSet(input: vNode) {
         try {
             if (this.reference) {
-                let _element = (<HTMLInputElement>input.reference[0]);
+                let _element = input.reference[0];
                 let _value = Support.getValue(input.context, this.reference);
-                let _new_value: any = _element.value;
-                let _input_type = _element.getAttribute("type");
+                let _new_value: any = !(_element instanceof HTMLInputElement) && (<HTMLElement>_element).getAttribute("contenteditable") ? (<HTMLElement>_element).innerText : (<HTMLInputElement>_element).value;
+                let _input_type = (<HTMLElement>_element).getAttribute("type");
                 switch (input.nodeName) {
                     case "SELECT":
                         if (Array.isArray(_value)) {
@@ -408,10 +433,10 @@ class cModel extends Command {
                                             Support.setValue(input.context, this.reference, _value.push(_new_value));
                                         }
                                     } else {
-                                        Support.setValue(input.context, this.reference, _element.checked ? _new_value : "");
+                                        Support.setValue(input.context, this.reference, (<HTMLInputElement>_element).checked ? _new_value : "");
                                     }
                                 } else {
-                                    Support.setValue(input.context, this.reference, _element.checked);
+                                    Support.setValue(input.context, this.reference, (<HTMLInputElement>_element).checked);
                                 }
                                 break;
                             case "textbox": case "text":
@@ -443,6 +468,16 @@ class cModel extends Command {
         return new cModel(attribute);
     }
 }
+
+/**
+ * Command for iterate array and duplicate Element for each iteration.
+ * It apply independent rendering management. 
+ * @date 27/3/2024 - 11:38:39
+ *
+ * @class cFor
+ * @typedef {cFor}
+ * @extends {Command}
+ */
 class cFor extends Command {
 
     static key: Readonly<string> = "cmd-for";
@@ -661,6 +696,15 @@ class cFor extends Command {
         return new cFor(attribute);
     }
 }
+
+/**
+ * Command for synchronizing events on element with the application
+ * @date 27/3/2024 - 11:39:54
+ *
+ * @class cOn
+ * @typedef {cOn}
+ * @extends {Command}
+ */
 class cOn extends Command {
 
     static key: Readonly<string> = "cmd-on";
@@ -707,6 +751,15 @@ class cOn extends Command {
         return new cOn(attribute);
     }
 }
+
+/**
+ * Command for conditional rendering
+ * @date 27/3/2024 - 11:40:43
+ *
+ * @class cIf
+ * @typedef {cIf}
+ * @extends {Command}
+ */
 class cIf extends Command {
     static key: Readonly<string> = "cmd-if";
     static key_elseif: Readonly<string> = "cmd-elseif";
@@ -791,6 +844,15 @@ class cIf extends Command {
         }
     }
 }
+
+/**
+ * Command for binding Element's attributes value
+ * @date 27/3/2024 - 11:41:00
+ *
+ * @class cBind
+ * @typedef {cBind}
+ * @extends {Command}
+ */
 class cBind extends Command {
     static key: Readonly<string> = "cmd-bind";
     static regexp: RegExp = /(CMD-BIND:[a-zA-Z-]+)|(cmd-bind:[a-zA-Z-]+)|(:[a-zA-Z-]+)/gm;

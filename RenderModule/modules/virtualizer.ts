@@ -666,7 +666,7 @@ export class vTemplate extends vNode {
             }
 
             for (const attr of this.attributes) {
-                ref(this.data_options, attr.prop, attr.ref, {
+                ref(this.data_options, attr.prop, attr.ref || Reflect.get(this.data_options, attr.prop) || "", {
                     handler: this._handler,
                     node: this,
                     get: (_target: any, _key: string, _context?: DataCollection | undefined) => {
@@ -686,7 +686,6 @@ export class vTemplate extends vNode {
             this.data_options.__node = this;
             this.data_options.__element = <Element>this.firstChild?.virtual?.firstChild;
             this.data_options.__app = this.application;
-            this.state = Collection.lifecycle.context_created;
             return react(this.data_options, newLocal);
         } else { //definition by object
             return Support.elaborateContext({}, this.data_options.dataset, newLocal, this.data_options.actions, this.data_options.computed)
@@ -721,9 +720,6 @@ export class vTemplate extends vNode {
                         }
                     }
                     return react(output, newLocal);
-                }).then((context) => {
-                    this.state = Collection.lifecycle.context_created;
-                    return context
                 });
         }
 
@@ -733,7 +729,8 @@ export class vTemplate extends vNode {
     protected async elaborateContext(context?: DataCollection | undefined): Promise<void> {
         await this.buildContext().then((template_context) => {
             this.context = context || this.parent?.context || template_context || {};
-            this._handler.setContext(template_context);
+            this._handler.setContext(template_context || {});
+            this.state = Collection.lifecycle.context_created;
             this._handler.trigger(Collection.node_event.dataset, template_context);
         });
     }

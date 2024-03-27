@@ -169,12 +169,32 @@ class StringAction {
         }
     }
 }
-/**Interface for starting the component by class */
+
+/**
+ * Interface for starting the component by class
+ * @date 27/3/2024 - 11:32:29
+ *
+ * @abstract
+ * @class iComponent
+ * @typedef {iComponent}
+ * @implements {DataCollection}
+ * @implements {iNodeReferences}
+ */
 abstract class iComponent implements DataCollection, iNodeReferences {
 
     protected _inputs: string[] = [];
     get inputs() { return this._inputs || []; }
-    get events() { return this.nodeEvents ? this.nodeEvents() : []; }
+    get events() {
+        let _ref = this;
+        let _base: iEvent<any> = {
+            name: Collection.node_event.progress,
+            action: async function (state: string) { _ref.onProgress(state); }
+        }
+        let _event_list: iEvent<any>[] = this.nodeEvents ? this.nodeEvents() : [];
+        _event_list.push(_base);
+
+        return _event_list;
+    }
     get settings() { return this.nodeSettings ? this.nodeSettings() : new Settings(); }
 
     __app: Application | undefined;
@@ -223,10 +243,141 @@ abstract class iComponent implements DataCollection, iNodeReferences {
         options.actions = clone;
         return options;
     }
-    /**Define component events list */
+    //#region ABSTRACT
+
+    /**
+     * Define component events list
+     * @date 27/3/2024 - 12:24:35
+     *
+     * @public
+     * @abstract
+     * @returns {iEvent<any>[]}
+     */
     public abstract nodeEvents(): iEvent<any>[];
-    /**Define component internal settings */
+
+    /**
+     * Define component internal settings
+     * @date 27/3/2024 - 12:24:15
+     *
+     * @public
+     * @abstract
+     * @returns {Settings}
+     */
     public abstract nodeSettings(): Settings;
+
+    /**
+     * Executed on Template vNode initialization
+     * @date 27/3/2024 - 12:19:57
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onCreating(): void;
+
+    /**
+     * Executed at the end of Template vNode initialization
+     * @date 27/3/2024 - 12:20:24
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onCreated(): void;
+
+    /**
+     * Executed before vNode setup
+     * @date 27/3/2024 - 12:20:54
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onMounting(): void;
+
+    /**
+     * Executed after vNode setup
+     * @date 27/3/2024 - 12:20:54
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onMounted(): void;
+
+    /**
+     * Executed before vNode's context setup
+     * @date 27/3/2024 - 12:21:13
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onContextCreating(): void;
+
+    /**
+     * Executed after vNode's context setup
+     * @date 27/3/2024 - 12:21:36
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onContextCreated(): void;
+
+    /**
+     * Executed before vNode update at property changes
+     * @date 27/3/2024 - 12:21:58
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onUpdating(): void;
+
+    /**
+     * Executed after vNode update
+     * @date 27/3/2024 - 12:23:22
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onUpdated(): void;
+
+    /**
+     * Executed on the end of every Template rendering
+     * @date 27/3/2024 - 12:23:43
+     *
+     * @public
+     * @abstract
+     */
+    public abstract onReady(): void;
+    //#endregion
+
+    private onProgress(state: string): void {
+        switch (state) {
+            case Collection.lifecycle.creating:
+                if ("onCreating" in this) (<Function>this.onCreating).call(this);
+                break;
+            case Collection.lifecycle.created:
+                if ("onCreated" in this) (<Function>this.onCreated).call(this);
+                break;
+            case Collection.lifecycle.mounting:
+                if ("onMounting" in this) (<Function>this.onMounting).call(this);
+                break;
+            case Collection.lifecycle.mounted:
+                if ("onMounted" in this) (<Function>this.onMounted).call(this);
+                break;
+            case Collection.lifecycle.context_creating:
+                if ("onContextCreating" in this) (<Function>this.onContextCreating).call(this);
+                break;
+            case Collection.lifecycle.context_created:
+                if ("onContextCreated" in this) (<Function>this.onContextCreated).call(this);
+                break;
+            case Collection.lifecycle.updating:
+                if ("onUpdating" in this) (<Function>this.onUpdating).call(this);
+                break;
+            case Collection.lifecycle.updated:
+                if ("onUpdated" in this) (<Function>this.onUpdated).call(this);
+                break;
+            case Collection.lifecycle.ready:
+                if ("onReady" in this) (<Function>this.onReady).call(this);
+                break;
+        }
+    }
 
     public clone(): this {
         return new (this.constructor as new () => this)();

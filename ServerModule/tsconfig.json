@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "experimentalDecorators": true,
+        "useDefineForClassFields": true,
+        "module": "ESNext",
+        "lib": [
+            "ESNext",
+            "DOM"
+        ],
+        "strict": true,
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "skipLibCheck": true,
+        "outDir": "../../dist/ServerModule",
+        "forceConsistentCasingInFileNames": true,
+        "allowJs": true
+    }
+}

@@ -4,6 +4,15 @@ import { elaborateContent, renderBrackets } from "./reactive.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import EventHandler from "./events.js";
+/**
+ * Command's Interface
+ * @date 27/3/2024 - 11:42:08
+ *
+ * @abstract
+ * @class Command
+ * @typedef {Command}
+ * @implements {iCommand}
+ */
 class Command {
     _attribute;
     _handler = new EventHandler();
@@ -19,6 +28,13 @@ class Command {
         throw new Error("Method not implemented. " + options.nodename);
     }
 }
+/**
+ * Visitor template for Commands implementation
+ * @date 27/3/2024 - 11:41:39
+ *
+ * @class CommandVisitor
+ * @typedef {CommandVisitor}
+ */
 class CommandVisitor {
     node;
     constructor(node) {
@@ -30,7 +46,7 @@ class CommandVisitor {
         let _input = ["INPUT", "TEXTAREA", "SELECT"];
         try {
             this.setupEvents(command);
-            if (this.node.reference.length && _input.includes(this.node.nodeName)) {
+            if (this.node.reference.length && (_input.includes(this.node.nodeName) || this.node.reference[0].getAttribute("contenteditable"))) {
                 this.node.reference[0].addEventListener("input", function () {
                     command.updateDataSet(_me.node);
                 });
@@ -239,6 +255,14 @@ class CommandVisitor {
         return [];
     }
 }
+/**
+ * Command for data binding on Element content or input Value
+ * @date 27/3/2024 - 11:38:04
+ *
+ * @class cModel
+ * @typedef {cModel}
+ * @extends {Command}
+ */
 class cModel extends Command {
     static key = "cmd-model";
     static regexp = /(CMD-MODEL)|(cmd-model)/gm;
@@ -313,7 +337,7 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (_debug && typeof (_debug) === "string") {
+                        if (_debug && typeof (_debug) === "string" && !node.reference[0].getAttribute("contenteditable")) {
                             let temp = Support.templateFromString(_debug);
                             let _child = temp.firstChild;
                             if (_child) {
@@ -325,8 +349,8 @@ class cModel extends Command {
                             }
                         }
                         else {
-                            if (node.reference.length)
-                                node.reference[0].nodeValue = _debug;
+                            if (node.reference.length && node.reference[0].innerText != _debug)
+                                node.reference[0].innerText = _debug;
                         }
                         break;
                 }
@@ -355,7 +379,7 @@ class cModel extends Command {
             if (this.reference) {
                 let _element = input.reference[0];
                 let _value = Support.getValue(input.context, this.reference);
-                let _new_value = _element.value;
+                let _new_value = !(_element instanceof HTMLInputElement) && _element.getAttribute("contenteditable") ? _element.innerText : _element.value;
                 let _input_type = _element.getAttribute("type");
                 switch (input.nodeName) {
                     case "SELECT":
@@ -428,6 +452,15 @@ class cModel extends Command {
         return new cModel(attribute);
     }
 }
+/**
+ * Command for iterate array and duplicate Element for each iteration.
+ * It apply independent rendering management.
+ * @date 27/3/2024 - 11:38:39
+ *
+ * @class cFor
+ * @typedef {cFor}
+ * @extends {Command}
+ */
 class cFor extends Command {
     static key = "cmd-for";
     static filter_key = "cmd-filter";
@@ -634,6 +667,14 @@ class cFor extends Command {
         return new cFor(attribute);
     }
 }
+/**
+ * Command for synchronizing events on element with the application
+ * @date 27/3/2024 - 11:39:54
+ *
+ * @class cOn
+ * @typedef {cOn}
+ * @extends {Command}
+ */
 class cOn extends Command {
     static key = "cmd-on";
     static regexp = /(CMD-ON:[a-zA-Z-]+)|(cmd-on:[a-zA-Z-]+)|(\@[a-zA-Z-]+)/gm;
@@ -677,6 +718,14 @@ class cOn extends Command {
         return new cOn(attribute);
     }
 }
+/**
+ * Command for conditional rendering
+ * @date 27/3/2024 - 11:40:43
+ *
+ * @class cIf
+ * @typedef {cIf}
+ * @extends {Command}
+ */
 class cIf extends Command {
     static key = "cmd-if";
     static key_elseif = "cmd-elseif";
@@ -757,6 +806,14 @@ class cIf extends Command {
         }
     }
 }
+/**
+ * Command for binding Element's attributes value
+ * @date 27/3/2024 - 11:41:00
+ *
+ * @class cBind
+ * @typedef {cBind}
+ * @extends {Command}
+ */
 class cBind extends Command {
     static key = "cmd-bind";
     static regexp = /(CMD-BIND:[a-zA-Z-]+)|(cmd-bind:[a-zA-Z-]+)|(:[a-zA-Z-]+)/gm;

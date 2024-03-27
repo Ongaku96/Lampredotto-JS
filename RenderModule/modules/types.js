@@ -160,11 +160,29 @@ class StringAction {
         }
     }
 }
-/**Interface for starting the component by class */
+/**
+ * Interface for starting the component by class
+ * @date 27/3/2024 - 11:32:29
+ *
+ * @abstract
+ * @class iComponent
+ * @typedef {iComponent}
+ * @implements {DataCollection}
+ * @implements {iNodeReferences}
+ */
 class iComponent {
     _inputs = [];
     get inputs() { return this._inputs || []; }
-    get events() { return this.nodeEvents ? this.nodeEvents() : []; }
+    get events() {
+        let _ref = this;
+        let _base = {
+            name: Collection.node_event.progress,
+            action: async function (state) { _ref.onProgress(state); }
+        };
+        let _event_list = this.nodeEvents ? this.nodeEvents() : [];
+        _event_list.push(_base);
+        return _event_list;
+    }
     get settings() { return this.nodeSettings ? this.nodeSettings() : new Settings(); }
     __app;
     __element;
@@ -210,6 +228,47 @@ class iComponent {
         }
         options.actions = clone;
         return options;
+    }
+    //#endregion
+    onProgress(state) {
+        switch (state) {
+            case Collection.lifecycle.creating:
+                if ("onCreating" in this)
+                    this.onCreating.call(this);
+                break;
+            case Collection.lifecycle.created:
+                if ("onCreated" in this)
+                    this.onCreated.call(this);
+                break;
+            case Collection.lifecycle.mounting:
+                if ("onMounting" in this)
+                    this.onMounting.call(this);
+                break;
+            case Collection.lifecycle.mounted:
+                if ("onMounted" in this)
+                    this.onMounted.call(this);
+                break;
+            case Collection.lifecycle.context_creating:
+                if ("onContextCreating" in this)
+                    this.onContextCreating.call(this);
+                break;
+            case Collection.lifecycle.context_created:
+                if ("onContextCreated" in this)
+                    this.onContextCreated.call(this);
+                break;
+            case Collection.lifecycle.updating:
+                if ("onUpdating" in this)
+                    this.onUpdating.call(this);
+                break;
+            case Collection.lifecycle.updated:
+                if ("onUpdated" in this)
+                    this.onUpdated.call(this);
+                break;
+            case Collection.lifecycle.ready:
+                if ("onReady" in this)
+                    this.onReady.call(this);
+                break;
+        }
     }
     clone() {
         return new this.constructor();

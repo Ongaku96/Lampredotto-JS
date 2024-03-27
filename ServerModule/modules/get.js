@@ -1,15 +1,7 @@
-import { exception } from "./references.js";
 import { REST } from "./types.js";
 export class GetService extends REST {
     constructor(url) {
         super(url, "GET");
-    }
-    async fetch() {
-        return await this.request().then((response) => {
-            if (!response.ok)
-                throw exception(this, response);
-            return response;
-        });
     }
     async json() {
         return this.fetch().then((response) => {

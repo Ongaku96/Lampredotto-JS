@@ -5,6 +5,17 @@ import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import EventHandler from "./events.js";
 /**
+ * check if element is content editable
+ * @date 29/3/2024 - 10:54:43
+ *
+ * @param {HTMLElement} element
+ * @returns {*}
+ */
+function isContentEditable(element) {
+    let _attr = element.getAttribute("contenteditable");
+    return _attr != null && _attr == "true";
+}
+/**
  * Command's Interface
  * @date 27/3/2024 - 11:42:08
  *
@@ -46,7 +57,7 @@ class CommandVisitor {
         let _input = ["INPUT", "TEXTAREA", "SELECT"];
         try {
             this.setupEvents(command);
-            if (this.node.reference.length && (_input.includes(this.node.nodeName) || this.node.reference[0].getAttribute("contenteditable"))) {
+            if (this.node.reference.length && (_input.includes(this.node.nodeName) || isContentEditable(this.node.reference[0]))) {
                 this.node.reference[0].addEventListener("input", function () {
                     command.updateDataSet(_me.node);
                 });
@@ -337,7 +348,7 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (_debug && typeof (_debug) === "string" && !node.reference[0].getAttribute("contenteditable")) {
+                        if (_debug && typeof (_debug) === "string" && !isContentEditable(node.reference[0])) {
                             let temp = Support.templateFromString(_debug);
                             let _child = temp.firstChild;
                             if (_child) {
@@ -350,7 +361,10 @@ class cModel extends Command {
                         }
                         else {
                             if (node.reference.length && node.reference[0].innerText != _debug)
-                                node.reference[0].innerText = _debug;
+                                if (isContentEditable(node.reference[0]))
+                                    node.reference[0].innerText = _debug;
+                                else
+                                    node.reference[0].nodeValue = _debug;
                         }
                         break;
                 }
@@ -379,7 +393,7 @@ class cModel extends Command {
             if (this.reference) {
                 let _element = input.reference[0];
                 let _value = Support.getValue(input.context, this.reference);
-                let _new_value = !(_element instanceof HTMLInputElement) && _element.getAttribute("contenteditable") ? _element.innerText : _element.value;
+                let _new_value = !(_element instanceof HTMLInputElement) && isContentEditable(_element) ? _element.innerText : _element.value;
                 let _input_type = _element.getAttribute("type");
                 switch (input.nodeName) {
                     case "SELECT":

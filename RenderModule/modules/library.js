@@ -308,6 +308,12 @@ export var Support;
         return typeof Reflect.get(document.body, "on" + eventname) !== "undefined";
     }
     Support.isNativeEvent = isNativeEvent;
+    function checkQuery(element, query) {
+        return query.attribute ? element.hasAttribute(query.attribute) : false ||
+            element.nodeName == query.nodeName ||
+            query.class ? element.className.includes(query.class || "") : false;
+    }
+    Support.checkQuery = checkQuery;
 })(Support || (Support = {}));
 export var View;
 (function (View) {

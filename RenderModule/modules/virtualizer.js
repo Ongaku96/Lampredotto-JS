@@ -504,12 +504,18 @@ export class vNode {
     }
     /**Check in original document if this element or its parents has one or more specified tag properties between class, nodeName and attributes */
     childOf(query) {
-        var isChild = (element) => {
-            return query.attribute ? element.hasAttribute(query.attribute) : false ||
-                element.nodeName == query.nodeName ||
-                query.class ? element.className.includes(query.class || "") : false;
-        };
-        return this.isElement && isChild(this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
+        return this.isElement && Support.checkQuery(this.backup, query) ? true :
+            (this.parent ? this.parent.childOf(query) : false);
+    }
+    /**
+     * Get first element's parent vnode that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getParent(query) {
+        return this.isElement && Support.checkQuery(this.backup, query) ? this : this.parent?.getParent(query);
     }
 }
 /**vTemplate is the vDOM rappresentation of Components, it is an extension of vNode but with some semi-independant application features*/

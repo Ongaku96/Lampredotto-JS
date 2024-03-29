@@ -1,7 +1,7 @@
 import { Collection } from "./enumerators.js";
 import { primitive_types } from "./global.js";
 import { _vault_key, react } from "./reactive.js";
-import { DataCollection, Formatter, ReactivityOptions, Settings } from "./types.js";
+import { DataCollection, Formatter, QueryElement, ReactivityOptions, Settings } from "./types.js";
 
 export namespace Support {
 
@@ -269,6 +269,11 @@ export namespace Support {
     /**Check if event is native */
     export function isNativeEvent(eventname: any): boolean {
         return typeof Reflect.get(document.body, "on" + eventname) !== "undefined";
+    }
+    export function checkQuery(element: HTMLElement, query: QueryElement) {
+        return query.attribute ? element.hasAttribute(query.attribute) : false ||
+            element.nodeName == query.nodeName ||
+            query.class ? element.className.includes(query.class || "") : false;
     }
 }
 

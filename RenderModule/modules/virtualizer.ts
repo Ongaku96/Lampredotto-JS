@@ -498,14 +498,20 @@ export class vNode {
     }
     /**Check in original document if this element or its parents has one or more specified tag properties between class, nodeName and attributes */
     childOf(query: QueryElement): boolean {
-        var isChild = (element: HTMLElement) => {
-            return query.attribute ? element.hasAttribute(query.attribute) : false ||
-                element.nodeName == query.nodeName ||
-                query.class ? element.className.includes(query.class || "") : false;
-        }
-        return this.isElement && isChild(<HTMLElement>this.backup) ? true : (this.parent ? this.parent.childOf(query) : false);
+        return this.isElement && Support.checkQuery(<HTMLElement>this.backup, query) ? true :
+            (this.parent ? this.parent.childOf(query) : false);
     }
 
+    /**
+     * Get first element's parent vnode that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getParent(query: QueryElement): vNode | undefined {
+        return this.isElement && Support.checkQuery(<HTMLElement>this.backup, query) ? this : this.parent?.getParent(query);
+    }
     //#endregion
 }
 
@@ -728,6 +734,7 @@ export class vTemplate extends vNode {
 
     protected async elaborateContext(context?: DataCollection | undefined): Promise<void> {
         await this.buildContext().then((template_context) => {
+
             this.context = context || this.parent?.context || template_context || {};
             this._handler.setContext(template_context || {});
             this.state = Collection.lifecycle.context_created;

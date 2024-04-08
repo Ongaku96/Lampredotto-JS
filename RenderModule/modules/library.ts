@@ -272,7 +272,7 @@ export namespace Support {
     }
     export function checkQuery(element: HTMLElement, query: QueryElement) {
         return query.attribute ? element.hasAttribute(query.attribute) : false ||
-            element.nodeName == query.nodeName ||
+            element.nodeName.toUpperCase() == query.nodeName?.toUpperCase() ||
             query.class ? element.className.includes(query.class || "") : false;
     }
 }

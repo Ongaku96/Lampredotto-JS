@@ -881,11 +881,11 @@ class cBind extends Command {
         try {
             if (node.reference.length && node.reference[0].nodeType == Node.ELEMENT_NODE && this.reference && this.attribute_bind) {
                 let _value = elaborateContent(this.reference, node.context);
-                if (typeof _value == 'boolean' || _value == null) {
-                    if (_value) (<HTMLElement>node.reference[0]).setAttribute(this.attribute_bind, ""); else (<HTMLElement>node.reference[0]).removeAttribute(this.attribute_bind);
-                } else {
-                    (<HTMLElement>node.reference[0]).setAttribute(this.attribute_bind, _value);
-                }
+                // if (typeof _value == 'boolean' || _value == null) {
+                if (_value) (<HTMLElement>node.reference[0]).setAttribute(this.attribute_bind, ""); else (<HTMLElement>node.reference[0]).removeAttribute(this.attribute_bind);
+                // } else {
+                //     (<HTMLElement>node.reference[0]).setAttribute(this.attribute_bind, _value);
+                // }
 
                 this._handler.trigger(Collection.node_event.render, {
                     attribute: this.attribute_bind,

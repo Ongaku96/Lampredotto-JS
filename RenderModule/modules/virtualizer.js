@@ -517,6 +517,48 @@ export class vNode {
     getParent(query) {
         return this.isElement && Support.checkQuery(this.backup, query) ? this : this.parent?.getParent(query);
     }
+    /**
+     * Get first element's child vnode that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getChild(query) {
+        if (this.isElement && Support.checkQuery(this.backup, query)) {
+            return this;
+        }
+        else {
+            for (const child of this.children) {
+                var wanted = child.getChild(query);
+                if (wanted)
+                    return wanted;
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Get first element's child context that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getChildContext(query) {
+        if (this.isElement) {
+            if (Support.checkQuery(this.backup, query)) {
+                return this._handler.Context;
+            }
+            else {
+                for (const child of this.children) {
+                    var wanted = child.getChildContext(query);
+                    if (wanted)
+                        return wanted;
+                }
+            }
+        }
+        return undefined;
+    }
 }
 /**vTemplate is the vDOM rappresentation of Components, it is an extension of vNode but with some semi-independant application features*/
 export class vTemplate extends vNode {
@@ -614,6 +656,7 @@ export class vTemplate extends vNode {
                     ref: this.element?.getAttribute(_attribute),
                     dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
                 });
+                this._commands = this._commands.filter(c => c.attribute?.name.toUpperCase() != _attribute?.toUpperCase());
             }
             else {
                 this.attributes.push({

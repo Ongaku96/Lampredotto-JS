@@ -75,6 +75,15 @@ export class vNode {
     get root(): boolean { return this.parent == null; }
     /**Get this application root virtual node */
     get application(): Application | undefined { return this.parent?.context[Collection.KeyWords.app] || undefined; }
+
+    /**
+     * Get Node's event handler
+     * @date 8/4/2024 - 12:31:54
+     *
+     * @readonly
+     * @type {EventHandler}
+     */
+    get handler(): EventHandler { return this._handler; }
     //#endregion
 
     constructor(original: Node, parent?: vNode) {
@@ -835,6 +844,69 @@ export class vTemplate extends vNode {
             for (const child of this.vtemplate_children) {
                 child.updateSettings(settings);
             }
+        }
+    }
+
+    /**
+     * Get first element's child vnode that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getChild(query: QueryElement): vNode | undefined {
+        if (this.isElement && Support.checkQuery(<HTMLElement>this.backup, query)) {
+            return this;
+        } else {
+            for (const child of this.vtemplate_children) {
+                var wanted = superGetChild(child, query);
+                if (wanted) return wanted;
+            }
+        }
+        return undefined;
+
+        function superGetChild(node: vNode, query: QueryElement): vNode | undefined {
+
+            if (node.isElement && Support.checkQuery(<HTMLElement>node.backup, query)) {
+                return node;
+            } else {
+                for (const child of node.children) {
+                    var wanted = superGetChild(child, query);
+                    if (wanted) return wanted;
+                }
+            }
+            return undefined;
+        }
+    }
+    /**
+     * Get first element's child context that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getChildContext(query: QueryElement): DataCollection | undefined {
+        if (this.isElement && Support.checkQuery(<HTMLElement>this.backup, query)) {
+            return this._handler.Context;
+        } else {
+            for (const child of this.vtemplate_children) {
+                var wanted = superGetChild(child, query);
+                if (wanted) return wanted;
+            }
+        }
+        return undefined;
+
+        function superGetChild(node: vNode, query: QueryElement): DataCollection | undefined {
+
+            if (node.isElement && Support.checkQuery(<HTMLElement>node.backup, query)) {
+                return node.handler.Context;
+            } else {
+                for (const child of node.children) {
+                    var wanted = superGetChild(child, query);
+                    if (wanted) return wanted;
+                }
+            }
+            return undefined;
         }
     }
 }

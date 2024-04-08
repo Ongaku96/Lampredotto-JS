@@ -512,6 +512,44 @@ export class vNode {
     getParent(query: QueryElement): vNode | undefined {
         return this.isElement && Support.checkQuery(<HTMLElement>this.backup, query) ? this : this.parent?.getParent(query);
     }
+    /**
+     * Get first element's child vnode that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getChild(query: QueryElement): vNode | undefined {
+        if (this.isElement && Support.checkQuery(<HTMLElement>this.backup, query)) {
+            return this;
+        } else {
+            for (const child of this.children) {
+                var wanted = child.getChild(query);
+                if (wanted) return wanted;
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Get first element's child context that match query selector
+     * @date 29/3/2024 - 13:45:14
+     *
+     * @param {QueryElement} query the query selector
+     * @returns {(vNode | undefined)}
+     */
+    getChildContext(query: QueryElement): DataCollection | undefined {
+        if (this.isElement) {
+            if (Support.checkQuery(<HTMLElement>this.backup, query)) {
+                return this._handler.Context;
+            } else {
+                for (const child of this.children) {
+                    var wanted = child.getChildContext(query);
+                    if (wanted) return wanted;
+                }
+            }
+        }
+        return undefined;
+    }
     //#endregion
 }
 
@@ -624,6 +662,7 @@ export class vTemplate extends vNode {
                     ref: this.element?.getAttribute(_attribute),
                     dynamic: this.element?.getAttribute(_attribute)?.match(Collection.regexp.brackets) != null || _attribute.includes(":")
                 });
+                this._commands = this._commands.filter(c => c.attribute?.name.toUpperCase() != _attribute?.toUpperCase());
             } else {
                 this.attributes.push({
                     name: "",
@@ -663,7 +702,6 @@ export class vTemplate extends vNode {
         this.state = Collection.lifecycle.context_creating;
         let _update: UpdateOptions | undefined;
         const newLocal = { handler: this._handler, node: this, update: _update };
-
         if (this.data_options instanceof iComponent) { //definition by class
 
             for (const key of Object.getOwnPropertyNames(this.data_options)) {
@@ -728,13 +766,10 @@ export class vTemplate extends vNode {
                     return react(output, newLocal);
                 });
         }
-
-
     }
 
     protected async elaborateContext(context?: DataCollection | undefined): Promise<void> {
         await this.buildContext().then((template_context) => {
-
             this.context = context || this.parent?.context || template_context || {};
             this._handler.setContext(template_context || {});
             this.state = Collection.lifecycle.context_created;

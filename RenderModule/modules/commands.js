@@ -842,7 +842,7 @@ class cBind extends Command {
                 let _value = elaborateContent(this.reference, node.context);
                 // if (typeof _value == 'boolean' || _value == null) {
                 if (_value)
-                    node.reference[0].setAttribute(this.attribute_bind, "");
+                    node.reference[0].setAttribute(this.attribute_bind, _value);
                 else
                     node.reference[0].removeAttribute(this.attribute_bind);
                 // } else {

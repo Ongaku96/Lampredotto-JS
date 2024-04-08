@@ -310,7 +310,7 @@ export var Support;
     Support.isNativeEvent = isNativeEvent;
     function checkQuery(element, query) {
         return query.attribute ? element.hasAttribute(query.attribute) : false ||
-            element.nodeName == query.nodeName ||
+            element.nodeName.toUpperCase() == query.nodeName?.toUpperCase() ||
             query.class ? element.className.includes(query.class || "") : false;
     }
     Support.checkQuery = checkQuery;

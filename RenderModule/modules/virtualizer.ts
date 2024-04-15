@@ -88,7 +88,6 @@ export class vNode {
 
     constructor(original: Node, parent?: vNode) {
         this.id = Support.uniqueID();
-        this.updateSettings(this.parent?.settings);
         this.state = Collection.lifecycle.creating;
         this.backup = original.cloneNode(true);
         this.static = false;
@@ -127,6 +126,7 @@ export class vNode {
     async setup() {
         try {
             this.state = Collection.lifecycle.setup;
+            this.updateSettings(this.parent?.settings);
             if (!this.static) {
                 this.incubator.appendChild(this.backup.cloneNode(false));
                 for (let comm of this._commands) {

@@ -1,8 +1,6 @@
 import ConnectionHandler from "./modules/connection.js";
-import { GetService } from "./modules/get.js";
-import { PostService } from "./modules/post.js";
 import { default_timer } from "./modules/references.js";
-import { UploadService } from "./modules/upload.js";
+import ServiceFactory from "./modules/serviceFactory.js";
 export default class Service {
     connectionTimer = default_timer;
     //#region  SINGLETON
@@ -22,18 +20,37 @@ export default class Service {
             this.connectionTimer = connectionTimer;
     }
     //#endregion
+    //#region REST API
     /**POST request with JSON data*/
     async post(url, data) {
-        return this.postInstance(url, data).fetch();
+        return ServiceFactory.instanceService("post", { url: url, data: data }).fetch();
+    }
+    /**PUT request with JSON data*/
+    async put(url, data) {
+        return ServiceFactory.instanceService("put", { url: url, data: data }).fetch();
     }
     /**GET request */
     async get(url) {
-        return this.getInstance(url).fetch();
+        return ServiceFactory.instanceService("get", { url: url }).fetch();
+    }
+    /**DELETE request */
+    async delete(url) {
+        return ServiceFactory.instanceService("delete", { url: url }).fetch();
+    }
+    /**POST or PUT request with Json or FormData*/
+    async upload(url, data, request = "POST") {
+        return ServiceFactory.instanceService("upload", { url: url, data: data, method: request }).fetch();
     }
     /**POST request with FormData*/
-    async upload(url, data) {
-        return this.uploadInstance(url, data).fetch();
+    async update(url, data) {
+        return ServiceFactory.instanceService("update", { url: url, data: data }).fetch();
     }
+    /**PUT request with FormData*/
+    async insert(url, data) {
+        return ServiceFactory.instanceService("insert", { url: url, data: data }).fetch();
+    }
+    //#endregion
+    //#region OTHERS
     /**Load server html into the first HTML Element that match the selector */
     async load(selector, url) {
         let _view = document.querySelector(selector);
@@ -79,44 +96,28 @@ export default class Service {
             return script;
         }
     }
+    //#endregion
+    //#region GETTERS
     /**Elaborate url as GET request and return a json object response*/
     async getJson(url) {
-        return this.getInstance(url).json();
+        return ServiceFactory.instanceService("get", { url: url }).json();
     }
     /**Elaborate url as GET request and return a blob response*/
     async getBlob(url) {
-        return this.getInstance(url).blob();
+        return ServiceFactory.instanceService("get", { url: url }).blob();
     }
     /**Elaborate url as GET request and return an Array Buffer response*/
     async getArrayBuffer(url) {
-        return this.getInstance(url).arrayBuffer();
+        return ServiceFactory.instanceService("get", { url: url }).arrayBuffer();
     }
     /**Elaborate url as GET request and return text response */
     async getText(url) {
-        return this.getInstance(url).text();
+        return ServiceFactory.instanceService("get", { url: url }).text();
     }
     /**Elaborate url as GET request and return an ObjectUrl
      * *NOTES* Indicate for onscreen files preview
      */
     async getObjectUrl(url) {
-        return this.getInstance(url).objectUrl();
-    }
-    getInstance(url) {
-        var service = new GetService(url);
-        if (this.connectionTimer != null)
-            service.setConnectionTimeout(this.connectionTimer);
-        return service;
-    }
-    postInstance(url, data) {
-        var service = new PostService(url, data);
-        if (this.connectionTimer != null)
-            service.setConnectionTimeout(this.connectionTimer);
-        return service;
-    }
-    uploadInstance(url, data) {
-        var service = new UploadService(url, data);
-        if (this.connectionTimer != null)
-            service.setConnectionTimeout(this.connectionTimer);
-        return service;
+        return ServiceFactory.instanceService("get", { url: url }).objectUrl();
     }
 }

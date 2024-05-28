@@ -1,4 +1,4 @@
-import { REST } from "./types.js";
+import REST from "./REST.js";
 
 export class GetService extends REST {
 

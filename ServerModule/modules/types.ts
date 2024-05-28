@@ -1,5 +1,4 @@
 import ConnectionHandler from "./connection.js";
-import { exception } from "./references.js";
 
 type HTTPOptions = {
     url: string,
@@ -15,66 +14,18 @@ type HTTPOptions = {
 
 type AbortRule = (ctrl: AbortController) => void
 
-interface iREST {
+export interface iREST {
     options: HTTPOptions
     connectionTimeout: ConnectionHandler
 }
 
-abstract class REST implements iREST {
-    static timer: number = 30000;
-    options: HTTPOptions = {
-        url: "",
-        method: "GET",
-        mode: "cors",
-        cache: "no-cache",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application-json", },
-        redirect: "follow",
-        policy: "no-referrer",
-        data: undefined
-    };
-    get method() { return this.options.method; }
-    get url() { return this.options.url; }
-    get body() { return this.options.data; }
-
-    connectionTimeout: ConnectionHandler = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, REST.timer) });
-
-    constructor(url: string, method: string, body: BodyInit | undefined = undefined) {
-        this.options.url = url
-        this.options.method = method;
-        this.options.data = body;
-    }
-
-    protected request = () => {
-        let controller = this.connectionTimeout?.clone();
-        if (controller) controller.run();
-        return fetch(this.options.url, {
-            method: this.options.method || "GET",
-            mode: this.options.mode || "cors",
-            cache: this.options.cache || "no-cache",
-            credentials: this.options.credentials || "same-origin",
-            headers: this.options.headers || {
-                "Content-Type": "application-json",
-            },
-            redirect: this.options.redirect || "follow",
-            referrerPolicy: this.options.policy || "no-referrer",
-            body: this.options.data,
-            signal: controller?.signal,
-        });
-    }
-
-
-    setConnectionTimeout(timer: number): void {
-        this.connectionTimeout = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort() }, timer); });
-    }
-
-    async fetch() {
-        return await this.request().then((response) => {
-            if (!response.ok) throw exception(this, response);
-            return response;
-        });
-    }
+type ServiceType = "get" | "post" | "put" | "delete" | "upload" | "update" | "insert";
+type Methods = "GET" | "POST" | "PUT" | "DELETE" | "GET"
+type FactoryOptions = {
+    url: string,
+    data?: object | FormData,
+    method?: Methods,
+    connectionTimer?: number
 }
 
-export type { HTTPOptions, AbortRule }
-export { REST }
+export type { HTTPOptions, AbortRule, ServiceType, FactoryOptions, Methods }

@@ -19,7 +19,7 @@ class Router {
      * @param {string} cb
      * @returns {this}
      */
-    add(path: string, cb: string): Router {
+    add(path: string, cb: Function): Router {
         this.routes.push({ path, cb });
         return this;
     }

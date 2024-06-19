@@ -522,6 +522,7 @@ type ViewSettings = {
 
 type QueryElement = {
     attribute?: string,
+    value?: string,
     class?: string,
     nodeName?: string
 }

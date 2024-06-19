@@ -96,10 +96,9 @@ export function openFloatingMenu(item: HTMLElement) {
                 break;
             default:
                 item.style.left = _left + "px";
-                item.style.top = (_top + _container_rect.height + _margin) + "px";
-                if ((_rect.y + _rect.height) > window.innerHeight) {
-                    item.style.bottom = (_top + _rect.height + _margin) + "px";
-                }
+                item.style.top = (_container_rect.y + _rect.height + _margin) > window.innerHeight ?
+                    (_container_rect.y - (_rect.height + _margin)) + "px" :
+                    (_top + _container_rect.height + _margin) + "px";
                 break;
         }
     }

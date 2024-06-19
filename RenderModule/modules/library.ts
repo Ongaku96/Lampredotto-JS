@@ -270,8 +270,11 @@ export namespace Support {
     export function isNativeEvent(eventname: any): boolean {
         return typeof Reflect.get(document.body, "on" + eventname) !== "undefined";
     }
-    export function checkQuery(element: HTMLElement, query: QueryElement) {
-        return query.attribute ? element.hasAttribute(query.attribute) : false ||
+    export function checkQuery(element: HTMLElement, query: QueryElement | string) {
+        if (typeof query == "string") {
+            return element.closest(query) === element;
+        }
+        return query.attribute ? (element.hasAttribute(query.attribute) && (query.value ? element.getAttribute(query.attribute) == query.value : true)) : false ||
             element.nodeName.toUpperCase() == query.nodeName?.toUpperCase() ||
             query.class ? element.className.includes(query.class || "") : false;
     }

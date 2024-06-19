@@ -525,10 +525,10 @@ export class vNode {
      * Get first element's child vnode that match query selector
      * @date 29/3/2024 - 13:45:14
      *
-     * @param {QueryElement} query the query selector
+     * @param {QueryElement | string} query the query selector
      * @returns {(vNode | undefined)}
      */
-    getChild(query: QueryElement): vNode | undefined {
+    getChild(query: QueryElement | string): vNode | undefined {
         if (this.isElement && Support.checkQuery(<HTMLElement>this.backup, query)) {
             return this;
         } else {
@@ -543,10 +543,10 @@ export class vNode {
      * Get first element's child context that match query selector
      * @date 29/3/2024 - 13:45:14
      *
-     * @param {QueryElement} query the query selector
+     * @param {QueryElement | string} query the query selector
      * @returns {(vNode | undefined)}
      */
-    getChildContext(query: QueryElement): DataCollection | undefined {
+    getChildContext(query: QueryElement | string): DataCollection | undefined {
         if (this.isElement) {
             if (Support.checkQuery(<HTMLElement>this.backup, query)) {
                 return this._handler.Context;

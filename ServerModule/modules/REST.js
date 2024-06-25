@@ -8,7 +8,7 @@ export default class REST {
         mode: "cors",
         cache: "no-cache",
         credentials: "same-origin",
-        headers: { "Content-Type": "application-json", },
+        headers: { "Content-Type": "application/json", },
         redirect: "follow",
         policy: "no-referrer",
         data: undefined
@@ -32,7 +32,7 @@ export default class REST {
             cache: this.options.cache || "no-cache",
             credentials: this.options.credentials || "same-origin",
             headers: this.options.headers || {
-                "Content-Type": "application-json",
+                "Content-Type": "application/json",
             },
             redirect: this.options.redirect || "follow",
             referrerPolicy: this.options.policy || "no-referrer",

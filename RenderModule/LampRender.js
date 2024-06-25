@@ -86,7 +86,7 @@ export async function serverComponent(url, timeoutConnection = 30000) {
             cache: "no-cache",
             credentials: "same-origin",
             headers: {
-                "Content-Type": "application-json",
+                "Content-Type": "application/json",
             },
             redirect: "follow",
             referrerPolicy: "no-referrer",

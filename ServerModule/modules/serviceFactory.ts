@@ -6,7 +6,7 @@ import { UploadService } from "./upload.js";
 import { UpdateService } from "./update.js";
 import { InsertService } from "./insert.js";
 import REST from "./REST.js";
-import { FactoryOptions } from "./types.js"
+import { FactoryOptions } from "./types.js";
 
 export default class ServiceFactory {
 

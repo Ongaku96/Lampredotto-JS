@@ -529,7 +529,7 @@ export class vNode {
      * Get first element's child vnode that match query selector
      * @date 29/3/2024 - 13:45:14
      *
-     * @param {QueryElement} query the query selector
+     * @param {QueryElement | string} query the query selector
      * @returns {(vNode | undefined)}
      */
     getChild(query) {
@@ -549,7 +549,7 @@ export class vNode {
      * Get first element's child context that match query selector
      * @date 29/3/2024 - 13:45:14
      *
-     * @param {QueryElement} query the query selector
+     * @param {QueryElement | string} query the query selector
      * @returns {(vNode | undefined)}
      */
     getChildContext(query) {

@@ -644,7 +644,7 @@ class cFor extends Command {
         try {
             if (data && this._sort && data.length) {
                 let _param = this._sort;
-                if (!(_param in data[0])) {
+                if (typeof data[0] == 'object' && !(_param in data[0])) {
                     _param = renderBrackets(this._sort, node.context, node.settings);
                     if (!this._desc)
                         this._desc = _param.includes("desc");

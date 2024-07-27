@@ -373,24 +373,11 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (_debug && typeof (_debug) === "string" && !isContentEditable(<HTMLElement>node.reference[0])) {
-                            let temp = Support.templateFromString(_debug);
-                            let _child = temp.firstChild;
-                            if (_child) {
-                                node.removeChildren();
-                                do {
-                                    node.append(_child.cloneNode(true));
-                                    _child = _child.nextSibling;
-                                } while (_child != null);
-                            }
-
-                        } else {
-                            if (node.reference.length && (<HTMLElement>node.reference[0]).innerText != _debug)
-                                if (isContentEditable(<HTMLElement>node.reference[0]))
-                                    (<HTMLElement>node.reference[0]).innerText = _debug;
-                                else
-                                    (<HTMLElement>node.reference[0]).nodeValue = _debug;
-                        }
+                        if (node.reference.length && (<HTMLElement>node.reference[0]).innerText != _debug)
+                            if (isContentEditable(<HTMLElement>node.reference[0]))
+                                (<HTMLElement>node.reference[0]).innerText = _debug;
+                            else
+                                (<HTMLElement>node.reference[0]).nodeValue = _debug;
                         break;
                 }
                 this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });

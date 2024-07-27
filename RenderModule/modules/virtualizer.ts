@@ -199,7 +199,18 @@ export class vNode {
                 case Node.TEXT_NODE:
                     if (this.backup.nodeValue) {
                         let _debug = renderBrackets(this.backup.nodeValue, this.context, this.settings);
-                        this.reference[0].nodeValue = _debug;
+                        if (_debug && typeof (_debug) === "string") {
+                            let temp = Support.templateFromString(_debug);
+                            let _child = temp.firstChild;
+                            if (_child) {
+                                this.incubator.textContent = "";
+                                do {
+                                    this.incubator.append(_child.cloneNode(true));
+                                    _child = _child.nextSibling;
+                                } while (_child != null);
+                            }
+                            this.replaceNodes();
+                        }
                         if (Support.debug(this.settings, Collection.debug_mode.command))
                             log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                     }

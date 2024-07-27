@@ -348,24 +348,11 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (_debug && typeof (_debug) === "string" && !isContentEditable(node.reference[0])) {
-                            let temp = Support.templateFromString(_debug);
-                            let _child = temp.firstChild;
-                            if (_child) {
-                                node.removeChildren();
-                                do {
-                                    node.append(_child.cloneNode(true));
-                                    _child = _child.nextSibling;
-                                } while (_child != null);
-                            }
-                        }
-                        else {
-                            if (node.reference.length && node.reference[0].innerText != _debug)
-                                if (isContentEditable(node.reference[0]))
-                                    node.reference[0].innerText = _debug;
-                                else
-                                    node.reference[0].nodeValue = _debug;
-                        }
+                        if (node.reference.length && node.reference[0].innerText != _debug)
+                            if (isContentEditable(node.reference[0]))
+                                node.reference[0].innerText = _debug;
+                            else
+                                node.reference[0].nodeValue = _debug;
                         break;
                 }
                 this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });
@@ -436,14 +423,14 @@ class cModel extends Command {
                                 break;
                             case "textbox":
                             case "text":
-                                Support.setValue(input.context, this.reference, _new_value ? _new_value.escapeHTML() : _new_value);
+                                Support.setValue(input.context, this.reference, _new_value != null ? _new_value.escapeHTML() : _new_value);
                                 break;
                             case "date":
                             case "datetime-local":
                                 Support.setValue(input.context, this.reference, _new_value ? new Date(_new_value) : _new_value);
                                 break;
                             case "number":
-                                Support.setValue(input.context, this.reference, _new_value ? Number(_new_value) : _new_value);
+                                Support.setValue(input.context, this.reference, _new_value != null ? Number(_new_value) : _new_value);
                                 break;
                             default:
                                 if (_new_value) {

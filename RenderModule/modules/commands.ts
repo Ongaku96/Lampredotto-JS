@@ -373,7 +373,8 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        (<HTMLElement>node.reference[0]).innerText = _debug;
+                        if (node.reference.length && (<HTMLElement>node.reference[0]).innerText != _debug)
+                            (<HTMLElement>node.reference[0]).innerText = _debug;
                         // if (node.reference.length && (<HTMLElement>node.reference[0]).innerText != _debug)
                         //     if (isContentEditable(<HTMLElement>node.reference[0]))
                         //         (<HTMLElement>node.reference[0]).innerText = _debug;

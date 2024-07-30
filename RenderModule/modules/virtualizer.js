@@ -199,26 +199,26 @@ export class vNode {
                     break;
                 case Node.TEXT_NODE:
                     if (this.backup.nodeValue) {
-                        let _debug = renderBrackets(this.backup.nodeValue, this.context, this.settings);
-                        if (_debug && typeof (_debug) === "string") {
-                            let temp = Support.templateFromString(_debug);
-                            let _child = temp.firstChild;
-                            if (_child) {
-                                this.incubator.textContent = "";
-                                do {
-                                    let tempVNode = vNode.newInstance(_child, this.parent);
-                                    tempVNode.setup();
-                                    tempVNode.elaborate();
-                                    for (var render of tempVNode.reference) {
-                                        this.incubator.append(render);
+                        if (this.backup.nodeValue) {
+                            let _debug = renderBrackets(this.backup.nodeValue, this.context, this.settings);
+                            this.incubator.textContent = "";
+                            if (_debug && typeof _debug == "string") {
+                                let temp = Support.templateFromString(_debug);
+                                while (temp.childNodes.length) {
+                                    if (temp.firstChild) {
+                                        let tempVNode = vNode.newInstance(temp.firstChild, this.parent);
+                                        tempVNode.setup();
+                                        tempVNode.elaborate();
+                                        for (var render of tempVNode.reference) {
+                                            this.incubator.append(render);
+                                        }
                                     }
-                                    _child = _child.nextSibling;
-                                } while (_child != null);
+                                }
                             }
                             this.replaceNodes();
+                            if (Support.debug(this.settings, Collection.debug_mode.command))
+                                log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                         }
-                        if (Support.debug(this.settings, Collection.debug_mode.command))
-                            log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                     }
                     break;
             }

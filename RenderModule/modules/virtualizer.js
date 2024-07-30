@@ -206,7 +206,12 @@ export class vNode {
                             if (_child) {
                                 this.incubator.textContent = "";
                                 do {
-                                    this.incubator.append(_child.cloneNode(true));
+                                    let tempVNode = vNode.newInstance(_child, this.parent);
+                                    tempVNode.setup();
+                                    tempVNode.elaborate();
+                                    for (var render of tempVNode.reference) {
+                                        this.incubator.append(render);
+                                    }
                                     _child = _child.nextSibling;
                                 } while (_child != null);
                             }

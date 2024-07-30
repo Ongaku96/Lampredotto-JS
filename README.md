@@ -84,7 +84,7 @@ Interaction with html elements is defined by commands inspired by Vue.js framewo
 
 #### Direct dynamic rendering
 
-Using double braces you can implement inline javascript code between html tags. The code inside the double braces is interpreted as a function with return and the result is printed as a string.
+Using double braces you can implement inline javascript code between html tags. The code inside the double braces is interpreted as a function with return and the result is appended into the parent node.
 
 ``` html
   <div>
@@ -106,7 +106,7 @@ Using double braces you can implement inline javascript code between html tags. 
 
 #### Command model
 
-This command allows you to render an application variable or javascript code within the tag it is applied to, it also allows you to render new html code.
+This command allows you to render an application variable or javascript code within the tag it is applied to.
 
 ``` html
   <div cmd-model='count'><div> <!-- 0 -->

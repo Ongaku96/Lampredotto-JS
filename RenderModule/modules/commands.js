@@ -348,11 +348,12 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (node.reference.length && node.reference[0].innerText != _debug)
-                            if (isContentEditable(node.reference[0]))
-                                node.reference[0].innerText = _debug;
-                            else
-                                node.reference[0].nodeValue = _debug;
+                        node.reference[0].innerText = _debug;
+                        // if (node.reference.length && (<HTMLElement>node.reference[0]).innerText != _debug)
+                        //     if (isContentEditable(<HTMLElement>node.reference[0]))
+                        //         (<HTMLElement>node.reference[0]).innerText = _debug;
+                        //     else
+                        //         (<HTMLElement>node.reference[0]).nodeValue = _debug;
                         break;
                 }
                 this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });

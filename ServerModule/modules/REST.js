@@ -44,9 +44,9 @@ export default class REST {
         this.connectionTimeout = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, timer); });
     }
     async fetch() {
-        return await this.request().then((response) => {
+        return await this.request().then(async (response) => {
             if (!response.ok)
-                throw exception(this, response);
+                throw await exception(this, response);
             return response;
         });
     }

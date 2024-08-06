@@ -3,9 +3,10 @@ import REST from "./REST.js";
 export const error_header: string = "LAMP Service: ";
 export const default_timer: number = 30000;
 
-export function exception(target: REST, response: Response) {
-    response.text().then(message => console.error(`${error_header}${target.method} -> ${message}`));
-    return new Error(response.statusText, { cause: response });
+export async function exception(target: REST, response: Response) {
+    var error = await response.json();
+    if (error && error.ExceptionMessage) console.error(`${error_header}${target.method} -> ${error.ExceptionMessage}`);
+    return new Error(response.statusText, { cause: error });
 }
 
 /**Build url with search parameters created by dataset*/

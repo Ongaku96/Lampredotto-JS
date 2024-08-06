@@ -50,8 +50,8 @@ export default class REST implements iREST {
     }
 
     async fetch() {
-        return await this.request().then((response) => {
-            if (!response.ok) throw exception(this, response);
+        return await this.request().then(async (response) => {
+            if (!response.ok) throw await exception(this, response);
             return response;
         });
     }

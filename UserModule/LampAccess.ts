@@ -100,7 +100,7 @@ export default class UserHandler {
     }
     private getSessionUser(): User | undefined {
         try {
-            let _data = sessionStorage.getItem("active_user");
+            let _data = sessionStorage.getItem(this.session_key);
             if (_data) {
                 let _user = JSON.parse(_data);
                 return new User(_user.id, _user.data, _user.settings);

@@ -1,4 +1,4 @@
-import ConnectionHandler from "./modules/connection.js";
+import ConnectionTimeoutInjector from "./modules/connection.js";
 import { GetService } from "./modules/get.js";
 import { default_timer } from "./modules/references.js";
 import ServiceFactory from "./modules/serviceFactory.js";
@@ -6,6 +6,7 @@ import ServiceFactory from "./modules/serviceFactory.js";
 export default class Service {
 
     private connectionTimer: number = default_timer;
+    private controller: AbortController;
     //#region  SINGLETON
     private static _instance: Service | null = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
@@ -14,42 +15,43 @@ export default class Service {
         return this._instance;
     }
     /**Instance new server service with personalized connection timeout rule */
-    static Instance(connectionTimer?: number) {
-        return new Service(connectionTimer);
+    static Instance(controller: AbortController, connectionTimer?: number) {
+        return new Service(controller, connectionTimer);
     }
-    private constructor(connectionTimer?: number) {
-        if (connectionTimer != null) this.connectionTimer = connectionTimer;
+    private constructor(controller?: AbortController, connectionTimer?: number) {
+        this.connectionTimer = connectionTimer ?? default_timer;
+        this.controller = controller ?? new AbortController();
     }
     //#endregion
 
     //#region REST API
     /**POST request with JSON data*/
     async post(url: string, data?: Object): Promise<Response> {
-        return ServiceFactory.instanceService("post", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("post", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**PUT request with JSON data*/
     async put(url: string, data?: Object): Promise<Response> {
-        return ServiceFactory.instanceService("put", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("put", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**GET request */
     async get(url: string): Promise<Response> {
-        return ServiceFactory.instanceService("get", { url: url }).fetch();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**DELETE request */
     async delete(url: string): Promise<Response> {
-        return ServiceFactory.instanceService("delete", { url: url }).fetch();
+        return ServiceFactory.instanceService("delete", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**POST or PUT request with Json or FormData*/
     async upload(url: string, data: any, request: "PUT" | "POST" = "POST"): Promise<Response> {
-        return ServiceFactory.instanceService("upload", { url: url, data: data, method: request }).fetch();
+        return ServiceFactory.instanceService("upload", { url: url, data: data, method: request, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**POST request with FormData*/
     async update(url: string, data: FormData): Promise<Response> {
-        return ServiceFactory.instanceService("update", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("update", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**PUT request with FormData*/
     async insert(url: string, data: FormData): Promise<Response> {
-        return ServiceFactory.instanceService("insert", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("insert", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     //#endregion
 
@@ -68,8 +70,7 @@ export default class Service {
     }
     /**Generate an HTML element that run a script using src */
     async runScript(url: string, success_callback?: Function, error_callback?: Function) {
-        let controller = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, this.connectionTimer); });
-        controller?.run();
+        let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
         var script = createScript();
         var prior = document.getElementsByTagName('script')[0];
         prior.parentNode?.insertBefore(<Node>script, prior);

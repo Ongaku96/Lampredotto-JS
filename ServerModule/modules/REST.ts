@@ -1,6 +1,6 @@
 import { HTTPOptions, iREST } from "./types.js";
-import { exception } from "./references.js";
-import ConnectionHandler from "./connection.js";
+import { exception, default_timer } from "./references.js";
+import ConnectionTimeoutInjector from "./connection.js";
 
 export default class REST implements iREST {
     static timer: number = 30000;
@@ -19,7 +19,8 @@ export default class REST implements iREST {
     get url() { return this.options.url; }
     get body() { return this.options.data; }
 
-    connectionTimeout: ConnectionHandler = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, REST.timer) });
+    controller: AbortController = new AbortController();
+    connectionTimer: number = default_timer;
 
     constructor(url: string, method: string, body?: BodyInit) {
         this.options.url = url
@@ -27,9 +28,8 @@ export default class REST implements iREST {
         this.options.data = body;
     }
 
-    protected request = () => {
-        let controller = this.connectionTimeout?.clone();
-        if (controller) controller.run();
+    protected request() {
+        let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
         return fetch(this.options.url, {
             method: this.options.method || "GET",
             mode: this.options.mode || "cors",
@@ -41,12 +41,16 @@ export default class REST implements iREST {
             redirect: this.options.redirect || "follow",
             referrerPolicy: this.options.policy || "no-referrer",
             body: this.options.data,
-            signal: controller?.signal,
+            signal: controller.signal,
         });
     }
 
     setConnectionTimeout(timer: number): void {
-        this.connectionTimeout = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort() }, timer); });
+        this.connectionTimer = timer;
+    }
+
+    setAbortController(controller: AbortController) {
+        this.controller = controller;
     }
 
     async fetch() {

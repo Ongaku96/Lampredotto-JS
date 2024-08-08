@@ -21,6 +21,7 @@ export default class ServiceFactory {
             case "insert": service = new InsertService(options.url, options.data); break;
             default: service = new GetService(options.url); break;
         }
+        if (options.controller != null) service.setAbortController(options.controller);
         if (options.connectionTimer != null) service.setConnectionTimeout(options.connectionTimer);
         return service;
     }

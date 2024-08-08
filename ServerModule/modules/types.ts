@@ -1,5 +1,3 @@
-import ConnectionHandler from "./connection.js";
-
 type HTTPOptions = {
     url: string,
     method?: string,
@@ -16,7 +14,7 @@ type AbortRule = (ctrl: AbortController) => void
 
 export interface iREST {
     options: HTTPOptions
-    connectionTimeout: ConnectionHandler
+    controller: AbortController
 }
 
 type ServiceType = "get" | "post" | "put" | "delete" | "upload" | "update" | "insert";
@@ -25,7 +23,8 @@ type FactoryOptions = {
     url: string,
     data?: object | FormData,
     method?: Methods,
-    connectionTimer?: number
+    connectionTimer?: number,
+    controller?: AbortController,
 }
 
 export type { HTTPOptions, AbortRule, ServiceType, FactoryOptions, Methods }

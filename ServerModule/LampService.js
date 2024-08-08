@@ -1,8 +1,9 @@
-import ConnectionHandler from "./modules/connection.js";
+import ConnectionTimeoutInjector from "./modules/connection.js";
 import { default_timer } from "./modules/references.js";
 import ServiceFactory from "./modules/serviceFactory.js";
 export default class Service {
     connectionTimer = default_timer;
+    controller;
     //#region  SINGLETON
     static _instance = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
@@ -12,42 +13,42 @@ export default class Service {
         return this._instance;
     }
     /**Instance new server service with personalized connection timeout rule */
-    static Instance(connectionTimer) {
-        return new Service(connectionTimer);
+    static Instance(controller, connectionTimer) {
+        return new Service(controller, connectionTimer);
     }
-    constructor(connectionTimer) {
-        if (connectionTimer != null)
-            this.connectionTimer = connectionTimer;
+    constructor(controller, connectionTimer) {
+        this.connectionTimer = connectionTimer ?? default_timer;
+        this.controller = controller ?? new AbortController();
     }
     //#endregion
     //#region REST API
     /**POST request with JSON data*/
     async post(url, data) {
-        return ServiceFactory.instanceService("post", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("post", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**PUT request with JSON data*/
     async put(url, data) {
-        return ServiceFactory.instanceService("put", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("put", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**GET request */
     async get(url) {
-        return ServiceFactory.instanceService("get", { url: url }).fetch();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**DELETE request */
     async delete(url) {
-        return ServiceFactory.instanceService("delete", { url: url }).fetch();
+        return ServiceFactory.instanceService("delete", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**POST or PUT request with Json or FormData*/
     async upload(url, data, request = "POST") {
-        return ServiceFactory.instanceService("upload", { url: url, data: data, method: request }).fetch();
+        return ServiceFactory.instanceService("upload", { url: url, data: data, method: request, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**POST request with FormData*/
     async update(url, data) {
-        return ServiceFactory.instanceService("update", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("update", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     /**PUT request with FormData*/
     async insert(url, data) {
-        return ServiceFactory.instanceService("insert", { url: url, data: data }).fetch();
+        return ServiceFactory.instanceService("insert", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
     }
     //#endregion
     //#region OTHERS
@@ -66,8 +67,7 @@ export default class Service {
     }
     /**Generate an HTML element that run a script using src */
     async runScript(url, success_callback, error_callback) {
-        let controller = new ConnectionHandler((ctrl) => { setTimeout(() => { ctrl.abort(); }, this.connectionTimer); });
-        controller?.run();
+        let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
         var script = createScript();
         var prior = document.getElementsByTagName('script')[0];
         prior.parentNode?.insertBefore(script, prior);

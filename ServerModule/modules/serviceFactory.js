@@ -31,6 +31,8 @@ export default class ServiceFactory {
                 service = new GetService(options.url);
                 break;
         }
+        if (options.controller != null)
+            service.setAbortController(options.controller);
         if (options.connectionTimer != null)
             service.setConnectionTimeout(options.connectionTimer);
         return service;

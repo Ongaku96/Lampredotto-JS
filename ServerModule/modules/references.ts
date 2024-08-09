@@ -5,8 +5,13 @@ export const default_timer: number = 30000;
 
 export async function exception(target: REST, response: Response) {
     var error = await response.json();
-    if (error && error.ExceptionMessage) console.error(`${error_header}${target.method} -> ${error.ExceptionMessage}`);
-    return new Error(response.statusText, { cause: error });
+    return new Error(error.ExceptionMessage ?? response.statusText, {
+        cause: {
+            target: target.method,
+            response: error,
+            message: `${error_header}${target.method} -> ${error.ExceptionMessage ?? response.statusText}`
+        }
+    });
 }
 
 /**Build url with search parameters created by dataset*/

@@ -483,6 +483,7 @@ type TemplateOptions = {
     events?: iEvent<any>[],
     actions?: any,
     computed?: any,
+    storage?: DataCollection,
 }
 /**Set of parameters for defining new component */
 type ComponentOptions = {

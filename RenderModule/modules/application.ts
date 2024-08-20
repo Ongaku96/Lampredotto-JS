@@ -12,6 +12,7 @@ class Application {
     public context: DataCollection = {};//data context
     public vdom: vNode | undefined = undefined;//virtual DOM
     public settings: Settings = new Settings({ debug: true });//Application settings
+    public storage: DataCollection = {};
 
     private handler: EventHandler = new EventHandler();//events collector
 
@@ -44,6 +45,7 @@ class Application {
             if (options && options?.settings) this.settings.merge(options.settings);
             this.applySettings();
             if (options && options.events) this.setupEvents(...options.events);
+            this.storage = options?.storage ?? {};
             return await this.buildContext(options?.dataset ? options.dataset : {}, options?.actions, options?.computed);
         } catch (ex) {
             log(ex, Collection.message_type.error);
@@ -69,7 +71,7 @@ class Application {
         try {
             this.state = Collection.lifecycle.mounting;
             this.vdom?.updateSettings(new Settings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters }));
-            await this.vdom?.elaborate(this.context);
+            await this.vdom?.elaborate(this.context, this.storage);
             this.state = Collection.lifecycle.mounted;
         } catch (ex) {
             log(ex, Collection.message_type.error);
@@ -168,10 +170,12 @@ class Application {
     /**Define unique data context from options */
     async buildContext(dataset: DataCollection, actions?: any, getters?: any): Promise<Application> {
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
-            output[Collection.KeyWords.app] = this; //in-context virtual node reference shortcut
-            output[Collection.KeyWords.node] = this.vdom; //in-context application reference
-            output[Collection.KeyWords.reference] = this.vdom?.firstChild; //in-context html node reference
             if (valueIsNotReactive(output)) output = react(output, this.reactivity);
+            let app = this;
+            Object.defineProperty(output, Collection.KeyWords.app, { get() { return app; } });//in-context virtual node reference shortcut
+            Object.defineProperty(output, Collection.KeyWords.node, { get() { return app.vdom; } }); //in-context application reference
+            Object.defineProperty(output, Collection.KeyWords.reference, { get() { return app.vdom?.firstChild; } });//in-context html node reference
+            Object.defineProperty(output, Collection.KeyWords.storage, { get() { return app.storage; } });//in-context html node reference
             this.context = output;
             return this;
         });

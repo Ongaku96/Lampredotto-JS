@@ -130,7 +130,7 @@ export namespace Support {
                     if (prop != null && !isPrimitive(prop) && _array_path[i] in prop) {
                         prop = prop[_array_path[i]];
                     } else {
-                        return undefined;
+                        return i > 0 ? "" : undefined;
                     }
                 }
                 return prop;

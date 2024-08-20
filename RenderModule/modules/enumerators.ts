@@ -177,7 +177,8 @@ export namespace Collection {
     export const KeyWords = {
         node: "__node",
         app: "__app",
-        reference: "__element"
+        reference: "__element",
+        storage: "__storage",
     }
 }
 

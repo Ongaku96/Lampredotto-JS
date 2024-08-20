@@ -162,7 +162,8 @@ export var Collection;
     Collection.KeyWords = {
         node: "__node",
         app: "__app",
-        reference: "__element"
+        reference: "__element",
+        storage: "__storage",
     };
 })(Collection || (Collection = {}));
 /**Collection of the framework errors with details*/

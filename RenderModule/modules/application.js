@@ -10,6 +10,7 @@ class Application {
     context = {}; //data context
     vdom = undefined; //virtual DOM
     settings = new Settings({ debug: true }); //Application settings
+    storage = {};
     handler = new EventHandler(); //events collector
     _state = Collection.lifecycle.initialized; //application state
     get state() { return this._state; }
@@ -40,6 +41,7 @@ class Application {
             this.applySettings();
             if (options && options.events)
                 this.setupEvents(...options.events);
+            this.storage = options?.storage ?? {};
             return await this.buildContext(options?.dataset ? options.dataset : {}, options?.actions, options?.computed);
         }
         catch (ex) {
@@ -66,7 +68,7 @@ class Application {
         try {
             this.state = Collection.lifecycle.mounting;
             this.vdom?.updateSettings(new Settings({ debug: this.settings.debug, debug_mode: this.settings.debug_mode, formatters: this.settings.formatters }));
-            await this.vdom?.elaborate(this.context);
+            await this.vdom?.elaborate(this.context, this.storage);
             this.state = Collection.lifecycle.mounted;
         }
         catch (ex) {
@@ -186,11 +188,13 @@ class Application {
     /**Define unique data context from options */
     async buildContext(dataset, actions, getters) {
         return Support.elaborateContext(this.context, dataset, this.reactivity, actions, getters).then((output) => {
-            output[Collection.KeyWords.app] = this; //in-context virtual node reference shortcut
-            output[Collection.KeyWords.node] = this.vdom; //in-context application reference
-            output[Collection.KeyWords.reference] = this.vdom?.firstChild; //in-context html node reference
             if (valueIsNotReactive(output))
                 output = react(output, this.reactivity);
+            let app = this;
+            Object.defineProperty(output, Collection.KeyWords.app, { get() { return app; } }); //in-context virtual node reference shortcut
+            Object.defineProperty(output, Collection.KeyWords.node, { get() { return app.vdom; } }); //in-context application reference
+            Object.defineProperty(output, Collection.KeyWords.reference, { get() { return app.vdom?.firstChild; } }); //in-context html node reference
+            Object.defineProperty(output, Collection.KeyWords.storage, { get() { return app.storage; } }); //in-context html node reference
             this.context = output;
             return this;
         });

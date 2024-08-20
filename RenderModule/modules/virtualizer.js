@@ -23,6 +23,8 @@ export class vNode {
     context = {};
     /**Settings of node */
     settings = new Settings();
+    /**Unreactive dataset */
+    storage = {};
     //#endregion
     //#region PRIVATE
     _handler = new EventHandler(this.context); //events utility management
@@ -142,17 +144,17 @@ export class vNode {
         }
     }
     /**First elaboration of node, context definition and rendering  */
-    async elaborate(context) {
+    async elaborate(context, storage) {
         this.state = Collection.lifecycle.mounting;
         if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
             this.reference[0].setAttribute("data-id", this.id);
         }
         try {
-            await this.elaborateContext(context);
+            await this.elaborateContext(context, storage);
             await this.render();
             this.onInject(async (node) => { node.elaborate(this._handler.Context); });
-            await this.elaborateChildren();
             this.state = Collection.lifecycle.mounted;
+            await this.elaborateChildren();
             this.state = Collection.lifecycle.ready;
             this._handler.trigger(Collection.node_event.render, this.firstChild);
         }
@@ -166,10 +168,11 @@ export class vNode {
         this.state = Collection.lifecycle.updating;
         try {
             await this.render();
-            await this.updateChildren();
+            this.updateChildren().then(() => {
+                this.state = Collection.lifecycle.ready;
+                this._handler.trigger(Collection.node_event.render, this.firstChild);
+            });
             this.state = Collection.lifecycle.updated;
-            this.state = Collection.lifecycle.ready;
-            this._handler.trigger(Collection.node_event.render, this.firstChild);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -199,26 +202,24 @@ export class vNode {
                     break;
                 case Node.TEXT_NODE:
                     if (this.backup.nodeValue) {
-                        if (this.backup.nodeValue) {
-                            let _debug = renderBrackets(this.backup.nodeValue, this.context, this.settings);
-                            this.incubator.textContent = "";
-                            if (_debug && typeof _debug == "string") {
-                                let temp = Support.templateFromString(_debug);
-                                while (temp.childNodes.length) {
-                                    if (temp.firstChild) {
-                                        let tempVNode = vNode.newInstance(temp.firstChild, this.parent);
-                                        tempVNode.setup();
-                                        tempVNode.elaborate();
-                                        for (var render of tempVNode.reference) {
-                                            this.incubator.append(render);
-                                        }
+                        let _debug = renderBrackets(this.backup.nodeValue, this.context, this.settings);
+                        this.incubator.textContent = "";
+                        if (_debug && typeof _debug == "string") {
+                            let temp = Support.templateFromString(_debug);
+                            while (temp.childNodes.length) {
+                                if (temp.firstChild) {
+                                    let tempVNode = vNode.newInstance(temp.firstChild, this.parent);
+                                    tempVNode.setup();
+                                    tempVNode.elaborate();
+                                    for (var render of tempVNode.reference) {
+                                        this.incubator.append(render);
                                     }
                                 }
                             }
-                            this.replaceNodes();
-                            if (Support.debug(this.settings, Collection.debug_mode.command))
-                                log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                         }
+                        this.replaceNodes();
+                        if (Support.debug(this.settings, Collection.debug_mode.command))
+                            log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                     }
                     break;
             }
@@ -282,8 +283,9 @@ export class vNode {
         }
     }
     /**Setup Node's context */
-    async elaborateContext(context) {
-        this.context = context || this.parent?.context || {};
+    async elaborateContext(context, storage) {
+        this.context = context ?? this.parent?.context ?? {};
+        this.storage = storage ?? this.parent?.storage ?? {};
         this._handler.setContext(this.context);
         this._handler.trigger(Collection.node_event.dataset, this.context);
     }
@@ -295,6 +297,12 @@ export class vNode {
                 child.updateSettings(settings);
             }
         }
+    }
+    setKeywords(collection, node) {
+        Reflect.set(collection, Collection.KeyWords.node, node);
+        Reflect.set(collection, Collection.KeyWords.reference, node.firstChild);
+        Reflect.set(collection, Collection.KeyWords.app, node.application);
+        return collection;
     }
     //#endregion
     //#region EVENTS
@@ -603,7 +611,8 @@ export class vTemplate extends vNode {
         this.data_options = options instanceof iComponent ? options : {
             dataset: options?.dataset,
             actions: options?.actions,
-            computed: options?.computed
+            computed: options?.computed,
+            storage: options?.storage,
         };
         if (options && options.settings != null)
             this.updateSettings(options?.settings);
@@ -748,17 +757,12 @@ export class vTemplate extends vNode {
                     }
                 });
             }
-            this.data_options.__node = this;
-            this.data_options.__element = this.firstChild?.virtual?.firstChild;
-            this.data_options.__app = this.application;
+            this.data_options = this.setKeywords(this.data_options);
             return react(this.data_options, newLocal);
         }
         else { //definition by object
             return Support.elaborateContext({}, this.data_options.dataset, newLocal, this.data_options.actions, this.data_options.computed)
                 .then((output) => {
-                output[Collection.KeyWords.node] = this;
-                output[Collection.KeyWords.reference] = this.firstChild?.virtual?.firstChild;
-                output[Collection.KeyWords.app] = this.application;
                 for (const attr of this.attributes) {
                     if (!(attr.prop in output && attr.name == "")) {
                         var options = {
@@ -786,17 +790,27 @@ export class vTemplate extends vNode {
                             output[Collection.KeyWords.reference].removeAttribute(attr.name);
                     }
                 }
+                output = this.setKeywords(output);
                 return react(output, newLocal);
             });
         }
     }
-    async elaborateContext(context) {
+    async elaborateContext(context, storage) {
+        this.storage = this.data_options?.storage ?? storage ?? this.parent?.storage ?? {};
         await this.buildContext().then((template_context) => {
-            this.context = context || this.parent?.context || template_context || {};
-            this._handler.setContext(template_context || {});
+            this.context = context ?? this.parent?.context ?? template_context ?? {};
+            this._handler.setContext(template_context ?? {});
             this.state = Collection.lifecycle.context_created;
             this._handler.trigger(Collection.node_event.dataset, template_context);
         });
+    }
+    setKeywords(collection) {
+        let node = this;
+        Object.defineProperty(collection, Collection.KeyWords.node, { get() { return node; } });
+        Object.defineProperty(collection, Collection.KeyWords.reference, { get() { return node.firstChild?.virtual?.firstChild; } });
+        Object.defineProperty(collection, Collection.KeyWords.app, { get() { return node.application; } });
+        Object.defineProperty(collection, Collection.KeyWords.storage, { get() { return node.storage; } });
+        return collection;
     }
     /**Elaborate template's virtual nodes  */
     mapTemplatechildren(render) {

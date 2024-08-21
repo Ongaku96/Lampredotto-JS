@@ -248,6 +248,18 @@ export namespace Support {
             throw ex;
         }
     }
+    export function deepClone(obj: any): any {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        const clone: any = Array.isArray(obj) ? [] : {};
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                clone[key] = deepClone(obj[key]);
+            }
+        }
+        return clone;
+    }
     /**Check if a value is an Array */
     export function isArray(value: any) {
         return typeof value == 'function' && Array.isArray(value());

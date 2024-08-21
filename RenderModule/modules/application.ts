@@ -45,7 +45,7 @@ class Application {
             if (options && options?.settings) this.settings.merge(options.settings);
             this.applySettings();
             if (options && options.events) this.setupEvents(...options.events);
-            this.storage = options?.storage ?? {};
+            this.storage = options?.storage ? Support.deepClone(options.storage) : {};
             return await this.buildContext(options?.dataset ? options.dataset : {}, options?.actions, options?.computed);
         } catch (ex) {
             log(ex, Collection.message_type.error);
@@ -183,6 +183,7 @@ class Application {
     /**Reset data context */
     resetContext() {
         this.context = {};
+        this.storage = {};
     }
     //#endregion
 

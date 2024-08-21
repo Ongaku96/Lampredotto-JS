@@ -283,6 +283,19 @@ export var Support;
         }
     }
     Support.cloneCollection = cloneCollection;
+    function deepClone(obj) {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        const clone = Array.isArray(obj) ? [] : {};
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                clone[key] = deepClone(obj[key]);
+            }
+        }
+        return clone;
+    }
+    Support.deepClone = deepClone;
     /**Check if a value is an Array */
     function isArray(value) {
         return typeof value == 'function' && Array.isArray(value());

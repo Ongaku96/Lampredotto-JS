@@ -298,10 +298,12 @@ export class vNode {
             }
         }
     }
-    setKeywords(collection, node) {
-        Reflect.set(collection, Collection.KeyWords.node, node);
-        Reflect.set(collection, Collection.KeyWords.reference, node.firstChild);
-        Reflect.set(collection, Collection.KeyWords.app, node.application);
+    setKeywords(collection) {
+        let node = this;
+        Object.defineProperty(collection, Collection.KeyWords.node, { get() { return node; } });
+        Object.defineProperty(collection, Collection.KeyWords.reference, { get() { return node.firstChild; } });
+        Object.defineProperty(collection, Collection.KeyWords.app, { get() { return node.application; } });
+        Object.defineProperty(collection, Collection.KeyWords.storage, { get() { return node.storage; } });
         return collection;
     }
     //#endregion
@@ -796,7 +798,7 @@ export class vTemplate extends vNode {
         }
     }
     async elaborateContext(context, storage) {
-        this.storage = this.data_options?.storage ?? storage ?? this.parent?.storage ?? {};
+        this.storage = this.data_options.storage ? Support.deepClone(this.data_options?.storage) : (storage ?? this.parent?.storage ?? {});
         await this.buildContext().then((template_context) => {
             this.context = context ?? this.parent?.context ?? template_context ?? {};
             this._handler.setContext(template_context ?? {});

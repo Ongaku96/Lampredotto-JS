@@ -41,7 +41,7 @@ class Application {
             this.applySettings();
             if (options && options.events)
                 this.setupEvents(...options.events);
-            this.storage = options?.storage ?? {};
+            this.storage = options?.storage ? Support.deepClone(options.storage) : {};
             return await this.buildContext(options?.dataset ? options.dataset : {}, options?.actions, options?.computed);
         }
         catch (ex) {
@@ -202,6 +202,7 @@ class Application {
     /**Reset data context */
     resetContext() {
         this.context = {};
+        this.storage = {};
     }
     //#endregion
     //#region EVENTS

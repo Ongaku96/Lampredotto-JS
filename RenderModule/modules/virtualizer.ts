@@ -171,8 +171,9 @@ export class vNode {
     async update() {
         this.state = Collection.lifecycle.updating;
         try {
-            await this.render().then(() => { this.state = Collection.lifecycle.updated; });
+            await this.render();
             await this.updateChildren().then(() => {
+                this.state = Collection.lifecycle.updated;
                 this.state = Collection.lifecycle.ready;
                 this.trigger(Collection.node_event.render, this.firstChild);
             });
@@ -707,15 +708,6 @@ export class vTemplate extends vNode {
                     dynamic: false
                 });
             }
-        }
-    }
-
-    async setup() {
-        try {
-            await super.setup();
-        } catch (ex) {
-            log(ex, Collection.message_type.error);
-            this.state = Collection.lifecycle.error;
         }
     }
 

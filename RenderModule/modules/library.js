@@ -6,6 +6,14 @@ export var Support;
     /**Execute a stringified function */
     function runFunctionByString(script, context, evt, _return = true) {
         try {
+            var _script = cleanScript();
+            let _function = new Function("evt", _script);
+            return _function.call(context, evt);
+        }
+        catch (ex) {
+            throw "error executing script {" + script + "}: " + ex;
+        }
+        function cleanScript() {
             var _script = script
                 .replace(/'/g, '"')
                 .replace(/\n/g, "\\n")
@@ -17,11 +25,7 @@ export var Support;
                 _script = "\"" + _script + "\"";
             if (!_script.includes("return") && _return)
                 _script = "return " + _script;
-            let _function = new Function("evt", _script);
-            return _function.call(context, evt);
-        }
-        catch (ex) {
-            throw "error executing script {" + script + "}: " + ex;
+            return _script;
         }
     }
     Support.runFunctionByString = runFunctionByString;

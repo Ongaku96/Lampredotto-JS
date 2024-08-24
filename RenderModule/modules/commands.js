@@ -687,14 +687,15 @@ class cOn extends Command {
         try {
             let _me = this;
             if (!this.setted && node.reference.length) {
+                let context = Object.keys(node.context).length ? node.context : (node.parent?.context ?? {});
                 if (Support.isNativeEvent(this.event.name)) {
                     node.reference[0].addEventListener(this.event.name, function (evt) {
-                        return _me.event.action(evt, node.context);
+                        return _me.event.action.call(context, evt);
                     });
                 }
                 else {
-                    node.on(this.event.name, (evt) => {
-                        this.event.action(evt, node.context);
+                    node.on(this.event.name, (evt, ...args) => {
+                        this.event.action.call(context, evt, ...args);
                     });
                 }
                 _me._handler.trigger(Collection.node_event.render, _me.event.name);
@@ -708,7 +709,7 @@ class cOn extends Command {
     accept(options) {
         this.event = {
             name: options.attribute,
-            action: function (evt, context) { return elaborateContent(options.value, context, evt); }
+            action: function (evt, ...args) { return elaborateContent(options.value, this, evt, [], true, ...args); }
         };
         this._handler.trigger(Collection.node_event.setup, options);
     }

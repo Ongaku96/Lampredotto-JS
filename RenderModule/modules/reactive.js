@@ -107,7 +107,7 @@ export function renderBrackets(content, context, settings, event, references) {
     }
 }
 /**Elaborate dynamic content from application data */
-export function elaborateContent(content, context, event, references, _return = true) {
+export function elaborateContent(content, context, event, references, _return = true, ...args) {
     try {
         //Replace all references in content
         if (references) {
@@ -127,7 +127,7 @@ export function elaborateContent(content, context, event, references, _return = 
             _val = Support.runFunctionByString(content, context, event, _return);
         //If value is a function try to run it
         if (typeof (_val) == "function")
-            return _val.call(context, event);
+            return _val.call(context, ...args);
         //Return the formatted value as indicated by app settings
         return _val;
     }

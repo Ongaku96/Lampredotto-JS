@@ -40,7 +40,7 @@ export class vNode {
     //#region PROPERTIES
     set state(value) {
         this._state = value;
-        this._handler.trigger(Collection.node_event.progress, this.state);
+        this.trigger(Collection.node_event.progress, this.state);
     }
     /**State of node's elaboration */
     get state() { return this._state; }
@@ -108,7 +108,7 @@ export class vNode {
             original.virtual = this;
             this.reference.push(original);
             this.state = Collection.lifecycle.created;
-            this._handler.trigger(Collection.node_event.virtualized, this);
+            this.trigger(Collection.node_event.virtualized, this);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -136,7 +136,7 @@ export class vNode {
                 }
             }
             await this.setupChildren();
-            this._handler.trigger(Collection.node_event.setup, this._commands);
+            this.trigger(Collection.node_event.setup, this._commands);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -153,10 +153,10 @@ export class vNode {
             await this.elaborateContext(context, storage);
             await this.render();
             this.onInject(async (node) => { node.elaborate(this._handler.Context); });
-            this.state = Collection.lifecycle.mounted;
             await this.elaborateChildren();
+            this.state = Collection.lifecycle.mounted;
             this.state = Collection.lifecycle.ready;
-            this._handler.trigger(Collection.node_event.render, this.firstChild);
+            this.trigger(Collection.node_event.render, this.firstChild);
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -168,11 +168,11 @@ export class vNode {
         this.state = Collection.lifecycle.updating;
         try {
             await this.render();
-            this.updateChildren().then(() => {
+            await this.updateChildren().then(() => {
+                this.state = Collection.lifecycle.updated;
                 this.state = Collection.lifecycle.ready;
-                this._handler.trigger(Collection.node_event.render, this.firstChild);
+                this.trigger(Collection.node_event.render, this.firstChild);
             });
-            this.state = Collection.lifecycle.updated;
         }
         catch (ex) {
             log(ex, Collection.message_type.error);
@@ -287,7 +287,7 @@ export class vNode {
         this.context = context ?? this.parent?.context ?? {};
         this.storage = storage ?? this.parent?.storage ?? {};
         this._handler.setContext(this.context);
-        this._handler.trigger(Collection.node_event.dataset, this.context);
+        this.trigger(Collection.node_event.dataset, this.context);
     }
     /**Update node settings and children settings*/
     updateSettings(settings) {
@@ -336,7 +336,7 @@ export class vNode {
                 _node.setup();
                 this.setupChildEvents(_node);
                 this._children.push(_node);
-                this._handler.trigger(Collection.node_event.inject, _node);
+                this.trigger(Collection.node_event.inject, _node);
             }
             else {
                 log("Impossible to append at " + this.id + " node cause it is not an Element Node", Collection.message_type.warning);
@@ -356,7 +356,7 @@ export class vNode {
                 _node.setup();
                 this.setupChildEvents(_node);
                 this._children = this._children.prepend(_node);
-                this._handler.trigger(Collection.node_event.inject, _node);
+                this.trigger(Collection.node_event.inject, _node);
             }
             else {
                 log("Impossible to prepend at " + this.id + " node cause it is not an Element Node", Collection.message_type.warning);
@@ -667,7 +667,7 @@ export class vTemplate extends vNode {
                     _element.setAttribute(attr, (_element.hasAttribute(attr) ? _element.getAttribute(attr) + " " : "") + this.element?.getAttribute(attr));
                 }
             }
-            //this._handler.trigger(Collection.node_event.render, this.incubator, this);
+            //this.trigger(Collection.node_event.render, this.incubator, this);
             this.incubator.querySelectorAll("ref").forEach(e => e.remove());
             this.replaceNodes();
         }
@@ -701,15 +701,6 @@ export class vTemplate extends vNode {
                     dynamic: false
                 });
             }
-        }
-    }
-    async setup() {
-        try {
-            await super.setup();
-        }
-        catch (ex) {
-            log(ex, Collection.message_type.error);
-            this.state = Collection.lifecycle.error;
         }
     }
     async dismiss() {
@@ -803,7 +794,7 @@ export class vTemplate extends vNode {
             this.context = context ?? this.parent?.context ?? template_context ?? {};
             this._handler.setContext(template_context ?? {});
             this.state = Collection.lifecycle.context_created;
-            this._handler.trigger(Collection.node_event.dataset, template_context);
+            this.trigger(Collection.node_event.dataset, template_context);
         });
     }
     setKeywords(collection) {

@@ -9,6 +9,14 @@ export namespace Support {
     /**Execute a stringified function */
     export function runFunctionByString(script: string, context: object, evt?: Event, _return: boolean = true): any {
         try {
+            var _script: string = cleanScript();
+            let _function: Function = new Function("evt", _script);
+            return _function.call(context, evt);
+        } catch (ex) {
+            throw "error executing script {" + script + "}: " + ex;
+        }
+
+        function cleanScript() {
             var _script: string = script
                 .replace(/'/g, '"')
                 .replace(/\n/g, "\\n")
@@ -18,10 +26,7 @@ export namespace Support {
                 });
             if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\"")) _script = "\"" + _script + "\"";
             if (!_script.includes("return") && _return) _script = "return " + _script;
-            let _function: Function = new Function("evt", _script);
-            return _function.call(context, evt);
-        } catch (ex) {
-            throw "error executing script {" + script + "}: " + ex;
+            return _script;
         }
     }
     /**Get list of app's dataset properties that are included in the script */

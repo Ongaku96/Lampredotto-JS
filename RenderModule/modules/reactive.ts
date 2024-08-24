@@ -102,7 +102,7 @@ export function renderBrackets(content: string, context: any, settings?: Setting
     }
 }
 /**Elaborate dynamic content from application data */
-export function elaborateContent(content: string, context: any, event?: Event, references?: { key: string, value: any }[], _return: boolean = true) {
+export function elaborateContent(content: string, context: any, event?: Event, references?: { key: string, value: any }[], _return: boolean = true, ...args: any[]) {
     try {
         //Replace all references in content
         if (references) {
@@ -122,7 +122,7 @@ export function elaborateContent(content: string, context: any, event?: Event, r
         //If there were no value in context try to run content as a script
         if ((_val == null || _val == undefined) && !(content in context)) _val = Support.runFunctionByString(content, context, event, _return);
         //If value is a function try to run it
-        if (typeof (_val) == "function") return _val.call(context, event);
+        if (typeof (_val) == "function") return _val.call(context, ...args);
         //Return the formatted value as indicated by app settings
         return _val;
     } catch (ex) {

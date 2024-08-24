@@ -87,77 +87,87 @@ class StringAction {
     /**Execute the action */
     run(...args: any[]) {
         switch (this.type) {
-            case Collection.action_type.link:
-                if (this.data && "link" in this.data) {
-                    try {
-                        if (args && args.length > 0) this.data.link = this.data.link.format(...args);
-                        window.open(this.data.link, "_blank");
-                    } catch (ex) {
-                        console.error(ex);
-                    }
-                } else {
-                    console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
-                }
-                break;
-            case Collection.action_type.code:
-                if (this.data && "script" in this.data) {
-                    try {
-                        if (this.data.args) args.push(...this.data.args);
-                        Support.runFunctionByString(this.data.script.format(...args), {});
-                    } catch (ex) {
-                        console.error(ex);
-                    }
-                } else {
-                    console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
-                }
-                break;
-            case Collection.action_type.server:
-                if (this.data && "action" in this.data) {
-                    try {
-                        if (args && args.length > 0) {
-                            switch (args.length) {
-                                case 1:
-                                    //__server.script(args[0]);
-                                    break;
-                                case 2:
-                                    //__server.script(args[0], args[1]);
-                                    break;
-                                case 3:
-                                    // __server.script(args[0], args[1], function (result) {
-                                    //     args[2](result);
-                                    // });
-                                    break;
-                            }
-                        }
-                    } catch (ex) {
-                        console.error(ex);
-                    }
-                } else {
-                    console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
-                }
-                break;
-            case Collection.action_type.email:
-                if (this.data && "to" in this.data) {
-                    try {
-                        let _to = this.data.to;
-                        let _cc = this.data.cc ? "?cc=" + this.data.cc : "";
-                        let subject = this.data.subject
-                            ? "&subject=" + this.data.subject
-                            : "";
-                        if (args && args.length > 0) subject = subject.format(...args);
-                        window.open("mailto:" + _to + _cc + subject, "_blank");
-                    } catch (ex) {
-                        console.error(ex);
-                    }
-                } else {
-                    console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
-                }
-                break;
+            case Collection.action_type.link: this.runLink(...args); break;
+            case Collection.action_type.code: this.runScript(...args); break;
+            case Collection.action_type.server: this.runServer(...args); break;
+            case Collection.action_type.email: this.runEmail(...args); break;
             default:
                 if (typeof this.data == 'function') this.data.call({}, ...args);
                 break;
         }
     }
+
+
+    private runLink(...args: any[]) {
+        if (this.data && "link" in this.data) {
+            try {
+                if (args && args.length > 0) this.data.link = this.data.link.format(...args);
+                window.open(this.data.link, "_blank");
+            } catch (ex) {
+                console.error(ex);
+            }
+        } else {
+            console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
+        }
+    }
+
+    private runScript(...args: any[]) {
+        if (this.data && "script" in this.data) {
+            try {
+                if (this.data.args) args.push(...this.data.args);
+                Support.runFunctionByString(this.data.script.format(...args), {});
+            } catch (ex) {
+                console.error(ex);
+            }
+        } else {
+            console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
+        }
+    }
+
+    private runServer(...args: any[]) {
+        if (this.data && "action" in this.data) {
+            try {
+                if (args && args.length > 0) {
+                    switch (args.length) {
+                        case 1:
+                            //__server.script(args[0]);
+                            break;
+                        case 2:
+                            //__server.script(args[0], args[1]);
+                            break;
+                        case 3:
+                            // __server.script(args[0], args[1], function (result) {
+                            //     args[2](result);
+                            // });
+                            break;
+                    }
+                }
+            } catch (ex) {
+                console.error(ex);
+            }
+        } else {
+            console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
+        }
+    }
+
+    private runEmail(...args: any[]) {
+        if (this.data && "to" in this.data) {
+            try {
+                let _to = this.data.to;
+                let _cc = this.data.cc ? "?cc=" + this.data.cc : "";
+                let subject = this.data.subject
+                    ? "&subject=" + this.data.subject
+                    : "";
+                if (args && args.length > 0) subject = subject.format(...args);
+                window.open("mailto:" + _to + _cc + subject, "_blank");
+            } catch (ex) {
+                console.error(ex);
+            }
+        } else {
+            console.warn("Unable to use the passed object: " + JSON.stringify(this.data));
+        }
+    }
+
     /**Get Action object from json */
     static load(json: string): StringAction | undefined {
         try {

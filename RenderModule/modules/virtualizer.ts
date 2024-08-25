@@ -6,6 +6,7 @@ import { Command, CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./comman
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
 import log from "./console.js";
+import TaskManager from "./pipeline.js";
 
 /**Virtualized Node */
 export class vNode {
@@ -596,12 +597,13 @@ export class vTemplate extends vNode {
     private vtemplate_children: vNode[] = []; //component's vDOM children only
     private attributes: { name: string, prop: string, ref: string | null | undefined, dynamic: boolean | undefined }[] = [];; //component's paramters
     private data_options: Partial<TemplateOptions> = {};//base dataset for context
+    private pipeline: TaskManager = new TaskManager();
 
     constructor(reference: Node, template: string, options: TemplateOptions | undefined, parent?: vNode) {
         super(reference, parent);
         this.createTemplate(reference, template, options);
         this.load();
-        this._handler.on(Collection.application_event.update, () => { this.update(); });
+        this._handler.on(Collection.application_event.update, () => { this.pipeline.add(() => this.update()) });
     }
 
     /**Prepare template data for processing */

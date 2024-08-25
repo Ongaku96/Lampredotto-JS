@@ -5,6 +5,7 @@ import { DataCollection, ReactivityOptions, Settings, TemplateOptions, iEvent } 
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import { react, valueIsNotReactive } from "./reactive.js";
+import TaskManager from "./pipeline.js";
 
 class Application {
 
@@ -15,7 +16,7 @@ class Application {
     public storage: DataCollection = {};
 
     private handler: EventHandler = new EventHandler();//events collector
-
+    private pipeline: TaskManager = new TaskManager();//update pipeline
     private _state: Collection.lifecycle = Collection.lifecycle.initialized;//application state
     get state(): Collection.lifecycle { return this._state; }
     set state(value: Collection.lifecycle) {
@@ -213,7 +214,7 @@ class Application {
             }
         });
         this.onChange(() => {
-            this.vdom?.update();
+            if (this.vdom != null) this.pipeline.add(() => { return <Promise<void>>this.vdom?.update(); });
         });
     }
     /**Add events */

@@ -5,6 +5,7 @@ import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
 import log from "./console.js";
+import TaskManager from "./pipeline.js";
 /**Virtualized Node */
 export class vNode {
     /**Return new instance of virtual node */
@@ -601,11 +602,12 @@ export class vTemplate extends vNode {
     attributes = [];
     ; //component's paramters
     data_options = {}; //base dataset for context
+    pipeline = new TaskManager();
     constructor(reference, template, options, parent) {
         super(reference, parent);
         this.createTemplate(reference, template, options);
         this.load();
-        this._handler.on(Collection.application_event.update, () => { this.update(); });
+        this._handler.on(Collection.application_event.update, () => { this.pipeline.add(() => this.update()); });
     }
     /**Prepare template data for processing */
     createTemplate(original, template, options) {

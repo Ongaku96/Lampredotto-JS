@@ -5,6 +5,7 @@ import { Settings } from "./types.js";
 import { Collection } from "./enumerators.js";
 import log from "./console.js";
 import { react, valueIsNotReactive } from "./reactive.js";
+import TaskManager from "./pipeline.js";
 class Application {
     name = ""; //id of application
     context = {}; //data context
@@ -12,6 +13,7 @@ class Application {
     settings = new Settings({ debug: true }); //Application settings
     storage = {};
     handler = new EventHandler(); //events collector
+    pipeline = new TaskManager(); //update pipeline
     _state = Collection.lifecycle.initialized; //application state
     get state() { return this._state; }
     set state(value) {
@@ -229,7 +231,8 @@ class Application {
             }
         });
         this.onChange(() => {
-            this.vdom?.update();
+            if (this.vdom != null)
+                this.pipeline.add(() => { return this.vdom?.update(); });
         });
     }
     /**Add events */

@@ -105,25 +105,25 @@ export default class Service {
     //#region GETTERS
     /**Elaborate url as GET request and return a json object response*/
     async getJson(url: string): Promise<object | undefined> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url })).json();
+        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).json();
     }
     /**Elaborate url as GET request and return a blob response*/
     async getBlob(url: string): Promise<Blob> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url })).blob();
+        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).blob();
     }
     /**Elaborate url as GET request and return an Array Buffer response*/
     async getArrayBuffer(url: string): Promise<ArrayBuffer> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url })).arrayBuffer();
+        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).arrayBuffer();
     }
     /**Elaborate url as GET request and return text response */
     async getText(url: string): Promise<string> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url })).text();
+        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).text();
     }
     /**Elaborate url as GET request and return an ObjectUrl
      * *NOTES* Indicate for onscreen files preview
      */
     async getObjectUrl(url: string): Promise<string> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url })).objectUrl();
+        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).objectUrl();
     }
     //#endregion
 }

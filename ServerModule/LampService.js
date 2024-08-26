@@ -100,24 +100,24 @@ export default class Service {
     //#region GETTERS
     /**Elaborate url as GET request and return a json object response*/
     async getJson(url) {
-        return ServiceFactory.instanceService("get", { url: url }).json();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).json();
     }
     /**Elaborate url as GET request and return a blob response*/
     async getBlob(url) {
-        return ServiceFactory.instanceService("get", { url: url }).blob();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).blob();
     }
     /**Elaborate url as GET request and return an Array Buffer response*/
     async getArrayBuffer(url) {
-        return ServiceFactory.instanceService("get", { url: url }).arrayBuffer();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).arrayBuffer();
     }
     /**Elaborate url as GET request and return text response */
     async getText(url) {
-        return ServiceFactory.instanceService("get", { url: url }).text();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).text();
     }
     /**Elaborate url as GET request and return an ObjectUrl
      * *NOTES* Indicate for onscreen files preview
      */
     async getObjectUrl(url) {
-        return ServiceFactory.instanceService("get", { url: url }).objectUrl();
+        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).objectUrl();
     }
 }

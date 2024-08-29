@@ -127,7 +127,7 @@ export function elaborateContent(content, context, event, references, _return = 
             _val = Support.runFunctionByString(content, context, event, _return);
         //If value is a function try to run it
         if (typeof (_val) == "function")
-            return _val.call(context, ...args);
+            return _val.call(context, ...args, event);
         //Return the formatted value as indicated by app settings
         return _val;
     }

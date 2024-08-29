@@ -122,7 +122,7 @@ export function elaborateContent(content: string, context: any, event?: Event, r
         //If there were no value in context try to run content as a script
         if ((_val == null || _val == undefined) && !(content in context)) _val = Support.runFunctionByString(content, context, event, _return);
         //If value is a function try to run it
-        if (typeof (_val) == "function") return _val.call(context, ...args);
+        if (typeof (_val) == "function") return _val.call(context, ...args, event);
         //Return the formatted value as indicated by app settings
         return _val;
     } catch (ex) {

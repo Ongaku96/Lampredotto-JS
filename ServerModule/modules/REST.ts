@@ -42,6 +42,9 @@ export default class REST implements iREST {
             referrerPolicy: this.options.policy || "no-referrer",
             body: this.options.data,
             signal: controller.signal,
+        }).then((response) => {
+            controller.resetTimer();
+            return response;
         });
     }
 

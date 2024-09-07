@@ -1,5 +1,5 @@
 import { Support } from "./library.js";
-import { DataCollection, iComponent, iEvent, QueryElement, ReactivityOptions, Settings, TemplateOptions, UpdateOptions } from "./types.js";
+import { DataCollection, iComponent, iEvent, QueryElement, ReactivityOptions, Settings, TemplateOptions } from "./types.js";
 import { Collection, command_matches } from "./enumerators.js";
 import { Application } from "./application.js";
 import { Command, CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
@@ -603,7 +603,9 @@ export class vTemplate extends vNode {
         super(reference, parent);
         this.createTemplate(reference, template, options);
         this.load();
-        this._handler.on(Collection.application_event.update, () => { this.pipeline.add(() => this.update()) });
+        this._handler.on(Collection.application_event.update, () => {
+            this.pipeline.add(() => this.update())
+        });
     }
 
     /**Prepare template data for processing */
@@ -730,8 +732,7 @@ export class vTemplate extends vNode {
      * but the passed variable's proxy is linked to the relative in the parent context instead of updating all vdom. */
     private async buildContext(): Promise<DataCollection> {
         this.state = Collection.lifecycle.context_creating;
-        let _update: UpdateOptions | undefined;
-        const newLocal = { handler: this._handler, node: this, update: _update };
+        const newLocal = { handler: this._handler, node: this };
         if (this.data_options instanceof iComponent) { //definition by class
             for (const key of Object.getOwnPropertyNames(this.data_options)) {
                 if (Support.isPrimitive(Reflect.get(this.data_options, key))) ref(this.data_options, key, Reflect.get(this.data_options, key), newLocal);

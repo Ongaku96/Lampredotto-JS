@@ -4,7 +4,8 @@ export const error_header: string = "LAMP Service: ";
 export const default_timer: number = 30000;
 
 export async function exception(target: REST, response: Response) {
-    var error = await response.json();
+    var error: any = {};
+    try { error = await response.json(); } catch (ex) { console.debug(ex); }
     return new Error(error.ExceptionMessage ?? response.statusText, {
         cause: {
             target: target.method,

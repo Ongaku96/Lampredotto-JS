@@ -85,7 +85,9 @@ class Application {
     update() {
         try {
             this.state = Collection.lifecycle.updating;
-            this.vdom?.update().then(() => { this.state = Collection.lifecycle.updated; });
+            this.vdom?.update().then(() => {
+                this.state = Collection.lifecycle.updated;
+            });
         } catch (ex) {
             log(ex, Collection.message_type.error);
             this.state = Collection.lifecycle.error;
@@ -214,7 +216,10 @@ class Application {
             }
         });
         this.onChange(() => {
-            if (this.vdom != null) this.pipeline.add(() => { return <Promise<void>>this.vdom?.update(); });
+            if (this.vdom != null)
+                this.pipeline.add(() => {
+                    return <Promise<void>>this.vdom?.update();
+                });
         });
     }
     /**Add events */

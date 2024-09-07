@@ -475,15 +475,7 @@ type ReactivityOptions = {
     get?: ((reference: any, property: string, context?: DataCollection) => any),
     set?: ((reference: any, property: string, value: any, context?: DataCollection) => void),
     node?: vNode,
-    handler?: EventHandler,
-    update?: UpdateOptions
-}
-/**NOT IMPLEMENTED */
-type UpdateOptions = {
-    include?: string[],
-    exclude?: string[],
-    parameter?: string,
-    propagate?: boolean
+    handler?: EventHandler
 }
 /**Set of data to define component's properties*/
 type TemplateOptions = {
@@ -505,6 +497,15 @@ type ComponentOptions = {
     options?: TemplateOptions,
     class?: iComponent
 };
+// type ReactEvent = {
+//     name: string,
+//     owner?: vNode,
+//     trigger?: vNode,
+//     context?: DataCollection,
+//     key?: string,
+//     value?: any,
+//     event?: Event
+// }
 //#endregion
 
 type DataCollection = {
@@ -540,4 +541,4 @@ type QueryElement = {
 
 export { Settings, StringAction, ApplicationBuilder, iComponent } //classes
 export type { iPrototype, iEvent, iCommand, iTemplate } //interfaces
-export type { Formatter, ReactivityOptions, CommandOptions, TemplateOptions, UpdateOptions, DataCollection, QueryElement, ComponentOptions } //types
+export type { Formatter, ReactivityOptions, CommandOptions, TemplateOptions, DataCollection, QueryElement, ComponentOptions } //types

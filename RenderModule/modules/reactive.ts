@@ -70,7 +70,7 @@ function trigger(target: any, key: string, _options?: ReactivityOptions): any {
 function track(target: any, key: string, value: any, options?: ReactivityOptions): void {
     if (Reflect.get(target, key) != value) {
         Reflect.set(target, key, value);
-        options?.handler?.trigger(Collection.application_event.update, options.update);
+        options?.handler?.trigger(Collection.application_event.update);
     }
 }
 /**Keeep an array reactive to changes in order to update interface on event. Every single iteration became reactive */

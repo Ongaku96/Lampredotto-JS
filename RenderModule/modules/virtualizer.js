@@ -607,7 +607,9 @@ export class vTemplate extends vNode {
         super(reference, parent);
         this.createTemplate(reference, template, options);
         this.load();
-        this._handler.on(Collection.application_event.update, () => { this.pipeline.add(() => this.update()); });
+        this._handler.on(Collection.application_event.update, () => {
+            this.pipeline.add(() => this.update());
+        });
     }
     /**Prepare template data for processing */
     createTemplate(original, template, options) {
@@ -722,8 +724,7 @@ export class vTemplate extends vNode {
      * but the passed variable's proxy is linked to the relative in the parent context instead of updating all vdom. */
     async buildContext() {
         this.state = Collection.lifecycle.context_creating;
-        let _update;
-        const newLocal = { handler: this._handler, node: this, update: _update };
+        const newLocal = { handler: this._handler, node: this };
         if (this.data_options instanceof iComponent) { //definition by class
             for (const key of Object.getOwnPropertyNames(this.data_options)) {
                 if (Support.isPrimitive(Reflect.get(this.data_options, key)))

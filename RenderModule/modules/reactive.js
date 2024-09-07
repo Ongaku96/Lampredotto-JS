@@ -73,7 +73,7 @@ function trigger(target, key, _options) {
 function track(target, key, value, options) {
     if (Reflect.get(target, key) != value) {
         Reflect.set(target, key, value);
-        options?.handler?.trigger(Collection.application_event.update, options.update);
+        options?.handler?.trigger(Collection.application_event.update);
     }
 }
 /**Keeep an array reactive to changes in order to update interface on event. Every single iteration became reactive */

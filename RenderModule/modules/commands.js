@@ -483,128 +483,137 @@ class cFor extends Command {
     }
     render(node) {
         try {
-            let _me = this;
-            let _data = Support.getValue(node.context, this.reference); //getting data
-            if (_data != null) {
-                _data = _data.filter((e) => {
-                    let index = () => {
-                        let i = 0;
-                        for (const item of _data) {
-                            if (JSON.stringify(item) === JSON.stringify(e))
-                                return i;
-                            i++;
-                        }
-                        return -1;
-                    };
-                    return this.filter(node.context, index());
-                });
-                _data = this.sort(_data, node);
-                if (_data && Array.isArray(_data)) {
-                    node.placeFlag((node) => {
-                        oldRenderingMethod();
-                        // newRenderingMethod();
-                        this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
-                        return this._backup.length > 0;
-                        function oldRenderingMethod() {
-                            node.incubator.textContent = ""; //reset node incubator
-                            for (let i = 0; i < _data.length; i++) {
-                                //Duplicate parent context for iteration
-                                let _context = Support.cloneCollection(node.context);
-                                //build and prepare html template code
-                                let _template = elaborateTemplate(i);
-                                //Initialize virtual node tree of template
-                                let _new_node = setupNewNode(_template, _data[i], _context); //render template content
-                                for (const render of _new_node.reference) {
-                                    node.incubator.appendChild(render);
-                                }
+            if (!isActive(node)) {
+                let _me = this;
+                let _data = Support.getValue(node.context, this.reference); //getting data
+                if (_data != null && Array.isArray(_data)) {
+                    _data = _data.filter((e) => {
+                        let index = () => {
+                            let i = 0;
+                            for (const item of _data) {
+                                if (JSON.stringify(item) === JSON.stringify(e))
+                                    return i;
+                                i++;
                             }
-                            node.replaceNodes(); //replace current reference with elaborated value
-                        }
-                        // function newRenderingMethod() {
-                        //     for (let i = 0; i < _data.length; i++) {
-                        //         let _rendered = _me._backup.find(e => e.context[_me.alias] == _data[i]);
-                        //         //filter item based on filter settings
-                        //         if (_me.filter(node.context, i)) {
-                        //             if (_rendered) {
-                        //                 _rendered.update();
-                        //             } else {
-                        //                 //Duplicate parent context for iteration
-                        //                 let _context = Support.cloneCollection(node.context);
-                        //                 //build and prepare html template code
-                        //                 let _template = elaborateTemplate(i);
-                        //                 //Initialize virtual node tree of template
-                        //                 let _new_node = setupNewNode(_template, _data[i], _context); //render template content
-                        //                 //inject the result in node's incubator
-                        //                 if (i > 0) {
-                        //                     let _before = _me._backup[i - 1];
-                        //                     if (_before) {
-                        //                         let _reference = _before.reference[_before.reference.length - 1];
-                        //                         if (_reference) {
-                        //                             for (const render of _new_node.reference) {
-                        //                                 (<Element>_reference).after(render);
-                        //                             }
-                        //                         }
-                        //                     } else {
-                        //                         log("Unable to find previous element in array " + _me.reference, Collection.message_type.warning);
-                        //                     }
-                        //                 } else {
-                        //                     for (const element of node.reference) {
-                        //                         (<HTMLElement>element).remove();
-                        //                     }
-                        //                     for (const render of _new_node.reference) {
-                        //                         node.flag.after(render);
-                        //                     }
-                        //                 }
-                        //                 _me._backup?.push(_new_node);
-                        //             }
-                        //         } else {
-                        //             if (_rendered) {
-                        //                 _me._backup = _me._backup.filter(e => e !== _rendered);
-                        //                 for (const el of _rendered.reference) {
-                        //                     (<Element>el).remove();
-                        //                 }
-                        //             }
-                        //         }
-                        //     }
-                        // }
-                        function setupNewNode(_template, item, _context) {
-                            let _new_node = vNode.newInstance(_template, node.parent);
-                            _context[_me.alias] = item;
-                            _new_node.setup();
-                            _new_node.elaborate(_context); //render template content
-                            return _new_node;
-                            //PROBLEMS WITH PROXY ON ITEM: 
-                            //  Cannot difference data[i] form eventual array children, 
-                            //  Target in get refer to himself so it will go in loop. So I needed to refer to data[i] but in case of annidate for, the child array will never be seen. 
-                            //setup internal reactivity rules with passive dynamic update of parent data 
-                            // let _reactive: ReactivityOptions = {
-                            //     get: (_target: any, _key: any) => {
-                            //         if (typeof _data[_key] == "function") return Reflect.get(_data, _key).bind(_data);
-                            //         if (_key && typeof _data[i] == "object" && _key in _data[i]) return Reflect.get(_data[i], _key);
-                            //         return Reflect.get(_data, i);
-                            //     },
-                            //     set: (_target: any, _key: any, newvalue: any) => {
-                            //         if (_target === _data[i])
-                            //             Support.setValue(_data[i], _key, newvalue); else _data[i] = newvalue;
-                            //         _new_node.update();
-                            //     }
-                            // };
-                            //inject current array value into internal context
-                            // if (Support.isPrimitive(_data[i])) {
-                            //     ref(_context, _me.alias, _data[i], _reactive);
-                            // } else {
-                            //     _context[_me.alias] = react(_data[i], _reactive);
-                            // }
-                        }
-                        function elaborateTemplate(index) {
-                            //replace index references
-                            let _html = _me.template.replace(new RegExp(cFor.index, "g"), index.toString());
-                            //convert html string code to Document Fragment
-                            let _template = Support.templateFromString(_html)?.firstChild;
-                            return _template;
-                        }
+                            return -1;
+                        };
+                        return this.filter(node.context, index());
                     });
+                    _data = this.sort(_data, node);
+                    if (_data && Array.isArray(_data)) {
+                        node.placeFlag((node) => {
+                            oldRenderingMethod();
+                            // newRenderingMethod();
+                            this._handler.trigger(Collection.node_event.render, { data: _data, stamp: node.incubator });
+                            return this._backup.length > 0;
+                            function oldRenderingMethod() {
+                                node.incubator.textContent = ""; //reset node incubator
+                                for (let i = 0; i < _data.length; i++) {
+                                    //Duplicate parent context for iteration
+                                    let _context = Support.cloneCollection(node.context);
+                                    //build and prepare html template code
+                                    let _template = elaborateTemplate(i);
+                                    //Initialize virtual node tree of template
+                                    let _new_node = setupNewNode(_template, _data[i], _context); //render template content
+                                    for (const render of _new_node.reference) {
+                                        node.incubator.appendChild(render);
+                                    }
+                                }
+                                node.replaceNodes(); //replace current reference with elaborated value
+                            }
+                            // function newRenderingMethod() {
+                            //     for (let i = 0; i < _data.length; i++) {
+                            //         let _rendered = _me._backup.find(e => e.context[_me.alias] == _data[i]);
+                            //         //filter item based on filter settings
+                            //         if (_me.filter(node.context, i)) {
+                            //             if (_rendered) {
+                            //                 _rendered.update();
+                            //             } else {
+                            //                 //Duplicate parent context for iteration
+                            //                 let _context = Support.cloneCollection(node.context);
+                            //                 //build and prepare html template code
+                            //                 let _template = elaborateTemplate(i);
+                            //                 //Initialize virtual node tree of template
+                            //                 let _new_node = setupNewNode(_template, _data[i], _context); //render template content
+                            //                 //inject the result in node's incubator
+                            //                 if (i > 0) {
+                            //                     let _before = _me._backup[i - 1];
+                            //                     if (_before) {
+                            //                         let _reference = _before.reference[_before.reference.length - 1];
+                            //                         if (_reference) {
+                            //                             for (const render of _new_node.reference) {
+                            //                                 (<Element>_reference).after(render);
+                            //                             }
+                            //                         }
+                            //                     } else {
+                            //                         log("Unable to find previous element in array " + _me.reference, Collection.message_type.warning);
+                            //                     }
+                            //                 } else {
+                            //                     for (const element of node.reference) {
+                            //                         (<HTMLElement>element).remove();
+                            //                     }
+                            //                     for (const render of _new_node.reference) {
+                            //                         node.flag.after(render);
+                            //                     }
+                            //                 }
+                            //                 _me._backup?.push(_new_node);
+                            //             }
+                            //         } else {
+                            //             if (_rendered) {
+                            //                 _me._backup = _me._backup.filter(e => e !== _rendered);
+                            //                 for (const el of _rendered.reference) {
+                            //                     (<Element>el).remove();
+                            //                 }
+                            //             }
+                            //         }
+                            //     }
+                            // }
+                            function setupNewNode(_template, item, _context) {
+                                let _new_node = vNode.newInstance(_template, node.parent);
+                                _context[_me.alias] = item;
+                                _new_node.setup();
+                                _new_node.elaborate(_context); //render template content
+                                return _new_node;
+                                //PROBLEMS WITH PROXY ON ITEM: 
+                                //  Cannot difference data[i] form eventual array children, 
+                                //  Target in get refer to himself so it will go in loop. So I needed to refer to data[i] but in case of annidate for, the child array will never be seen. 
+                                //setup internal reactivity rules with passive dynamic update of parent data 
+                                // let _reactive: ReactivityOptions = {
+                                //     get: (_target: any, _key: any) => {
+                                //         if (typeof _data[_key] == "function") return Reflect.get(_data, _key).bind(_data);
+                                //         if (_key && typeof _data[i] == "object" && _key in _data[i]) return Reflect.get(_data[i], _key);
+                                //         return Reflect.get(_data, i);
+                                //     },
+                                //     set: (_target: any, _key: any, newvalue: any) => {
+                                //         if (_target === _data[i])
+                                //             Support.setValue(_data[i], _key, newvalue); else _data[i] = newvalue;
+                                //         _new_node.update();
+                                //     }
+                                // };
+                                //inject current array value into internal context
+                                // if (Support.isPrimitive(_data[i])) {
+                                //     ref(_context, _me.alias, _data[i], _reactive);
+                                // } else {
+                                //     _context[_me.alias] = react(_data[i], _reactive);
+                                // }
+                            }
+                            function elaborateTemplate(index) {
+                                //replace index references
+                                let _html = _me.template.replace(new RegExp(cFor.index, "g"), index.toString());
+                                //convert html string code to Document Fragment
+                                let _template = Support.templateFromString(_html)?.firstChild;
+                                return _template;
+                            }
+                        });
+                    }
                 }
+            }
+            function isActive(node) {
+                for (const element of node.reference) {
+                    if (element.querySelector("input:focus"))
+                        return true;
+                }
+                return false;
             }
         }
         catch (ex) {

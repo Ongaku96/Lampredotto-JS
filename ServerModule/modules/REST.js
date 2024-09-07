@@ -37,6 +37,9 @@ export default class REST {
             referrerPolicy: this.options.policy || "no-referrer",
             body: this.options.data,
             signal: controller.signal,
+        }).then((response) => {
+            controller.resetTimer();
+            return response;
         });
     }
     setConnectionTimeout(timer) {

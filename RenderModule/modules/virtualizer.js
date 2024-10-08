@@ -13,17 +13,7 @@ export class vNode {
         let component = globalThis.my_components?.find(c => c.name.toUpperCase() == reference.nodeName.toUpperCase());
         if (component == null)
             return new vNode(reference, parent);
-        let _clone = {};
-        if ("options" in component && component.options != null) {
-            _clone = Object.create(component.options);
-            if ("dataset" in component.options)
-                _clone.dataset = JSON.parse(JSON.stringify(component.options.dataset));
-            if ("storage" in component.options)
-                _clone.storage = JSON.parse(JSON.stringify(component.options.storage));
-        }
-        return new vTemplate(reference, component.template, _clone, parent);
-        // let _component = globalThis.my_components?.find(c => c.name.toUpperCase() == reference.nodeName.toUpperCase());
-        // return _component != null ? new vTemplate(reference, _component.template, _component.options, parent) : new vNode(reference, parent);
+        return new vTemplate(reference, component.template, Support.deepClone(component.options), parent);
     }
     //#region PUBLIC
     /**virtual node identifier */

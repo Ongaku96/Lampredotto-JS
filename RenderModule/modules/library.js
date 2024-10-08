@@ -291,7 +291,7 @@ export var Support;
         if (obj === null || typeof obj !== 'object') {
             return obj;
         }
-        const clone = Array.isArray(obj) ? [] : {};
+        const clone = Array.isArray(obj) ? [] : Object.assign(Object.create(Object.getPrototypeOf(obj)));
         for (const key in obj) {
             if (obj.hasOwnProperty(key)) {
                 clone[key] = deepClone(obj[key]);

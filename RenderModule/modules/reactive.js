@@ -30,7 +30,7 @@ export function ref(target, key, value = null, options) {
 }
 /**Keep objects reactive to change in order to trigger interface update */
 export function react(obj, options) {
-    if (Support.isPrimitive(obj) || typeof obj == "function" || obj == null)
+    if (Support.isPrimitive(obj) || typeof obj == "function" || obj == null || obj instanceof Blob)
         return obj;
     if (!Reflect.get(obj, _proxy_key)) {
         return new Proxy(obj, {

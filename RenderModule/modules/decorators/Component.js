@@ -1,3 +1,4 @@
+"use strict";
 /**Decorator for component initialization */
 // function lampComponent(args: Partial<ComponentOptions>) {
 //     return (constructor: Function) => {
@@ -13,5 +14,4 @@
 //         }
 //     }
 // }
-
 // export { lampComponent };

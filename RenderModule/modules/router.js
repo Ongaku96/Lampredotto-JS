@@ -1,17 +1,17 @@
 class Router {
-    private routes: { path: string, cb: Function }[] = [];
-    private mode: "history" | "hash" | null = null;
-    private root: string = "/";
-    private current: string = "/";
-    private timeout?: number;
-
-    constructor(options: { mode?: "history" | "hash", root?: string }) {
+    routes = [];
+    mode = null;
+    root = "/";
+    current = "/";
+    timeout;
+    constructor(options) {
         this.mode = window.history.pushState != null ? "history" : "hash";
-        if (options.mode) this.mode = options.mode;
-        if (options.root) this.root = options.root;
+        if (options.mode)
+            this.mode = options.mode;
+        if (options.root)
+            this.root = options.root;
         this.listen();
     }
-
     /**
      * Add path to history collection
      *
@@ -19,26 +19,22 @@ class Router {
      * @param {string} cb
      * @returns {this}
      */
-    add(path: string, cb: Function): Router {
+    add(path, cb) {
         this.routes.push({ path, cb });
         return this;
     }
-
-    remove(path: string): Router {
+    remove(path) {
         this.routes.slice(this.routes.findIndex(e => e.path === path), 1);
         return this;
     }
-
-    flush(): Router {
+    flush() {
         this.routes = [];
         return this;
     }
-
-    private clearSlashes(path: string): string {
+    clearSlashes(path) {
         return path.toString().replace(/\/S/, '').replace(/^\//, '');
     }
-
-    getFragment(): string {
+    getFragment() {
         let fragment = '';
         switch (this.mode) {
             case "history":
@@ -53,25 +49,23 @@ class Router {
         }
         return this.clearSlashes(fragment);
     }
-
-    navigate(path: string = ''): Router {
+    navigate(path = '') {
         if (this.mode == "history") {
             window.history.pushState(null, "", this.root + this.clearSlashes(path));
-        } else {
+        }
+        else {
             window.location.href = `${window.location.href.replace(/#(.*)$/, '')}#${path}`;
         }
         return this;
     }
-
-    private listen() {
+    listen() {
         clearInterval(this.timeout);
         this.timeout = setInterval(this.interval, 50);
     }
-    private interval() {
-
-        if (this.current === this.getFragment()) return;
+    interval() {
+        if (this.current === this.getFragment())
+            return;
         this.current = this.getFragment();
-
         this.routes.some(route => {
             const match = this.current.match(route.path);
             if (match) {
@@ -83,6 +77,4 @@ class Router {
         });
     }
 }
-
-
-export default Router
+export default Router;

@@ -1,5 +1,4 @@
 import { Support } from "./library.js";
-
 /**
  * Utility Class for updating process optimization
  *
@@ -8,20 +7,19 @@ import { Support } from "./library.js";
  * @typedef {TaskManager}
  */
 export default class TaskManager {
-
-    private tasks: { id: string, action: () => Promise<void>, running: boolean }[] = [];
-
+    tasks = [];
     constructor() { }
     /**Add waiting Task or replace the last */
-    add(action: () => Promise<any>) {
+    add(action) {
         let task = {
             id: Support.uniqueID(),
             running: false,
             action: action
-        }
+        };
         this.tasks = this.tasks.filter(t => t.running); //remove all waiting tasks
         this.tasks.push(task); //add new task
-        if (!this.checkRunningTask()) this.run(); //if nothing is running run first task in pipeline
+        if (!this.checkRunningTask())
+            this.run(); //if nothing is running run first task in pipeline
     }
     /**Clear pipeline */
     clear() {
@@ -43,11 +41,12 @@ export default class TaskManager {
         }
     }
     /**Remove task with specified id */
-    private removeTask(id: string | undefined) {
-        if (id) this.tasks = this.tasks.filter(t => t.id !== id);
+    removeTask(id) {
+        if (id)
+            this.tasks = this.tasks.filter(t => t.id !== id);
     }
     /**Check if there are running tasks */
-    checkRunningTask(): boolean {
-        return this.tasks.find(t => t.running) != null
+    checkRunningTask() {
+        return this.tasks.find(t => t.running) != null;
     }
 }

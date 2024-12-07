@@ -1,17 +1,15 @@
 import "./modules/global.js";
 import "./components/default.components.js";
 import EventHandler from "./modules/events.js";
-import { ApplicationBuilder, ComponentOptions } from "./modules/types.js";
+import { ApplicationBuilder } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";
 import { Application } from "./modules/application.js";
 import log from "./modules/console.js";
 import { setupComponent, styleComponent } from "./modules/templates.js";
-
 /**Lampredotto framework */
 export default class RenderEngine {
-
-    private static _instance: RenderEngine;
-    private handler: EventHandler = new EventHandler();
+    static _instance;
+    handler = new EventHandler();
     /**Singleton instance of framework */
     static get instance() {
         try {
@@ -20,21 +18,21 @@ export default class RenderEngine {
                 RenderEngine._instance.handler.trigger(Collection.lifecycle.created.toString());
             }
             return RenderEngine._instance;
-        } catch (ex) {
+        }
+        catch (ex) {
             log(ex, Collection.message_type.error);
             return null;
         }
     }
-
     constructor() {
         this.setupEvents();
         this.handler.trigger(Collection.lifecycle.creating.toString());
     }
-
     setupEvents() {
-        document.addEventListener(Collection.application_event.component, (evt: Event) => {
-            Array.from(document.querySelectorAll((<CustomEvent>evt).detail)).forEach(element => {
-                if ("virtual" in element) element?.virtual?.update();
+        document.addEventListener(Collection.application_event.component, (evt) => {
+            Array.from(document.querySelectorAll(evt.detail)).forEach(element => {
+                if ("virtual" in element)
+                    element?.virtual?.update();
             });
         });
         this.handler.on(Collection.lifecycle.creating.toString(), async () => {
@@ -46,18 +44,16 @@ export default class RenderEngine {
             log("API are ready to use");
         });
     }
-
     /**Start new application */
-    start(id: string): ApplicationBuilder {
+    start(id) {
         return new ApplicationBuilder(new Application(id));
     }
 }
 /**Define new Component by template*/
-export async function defineComponent(component: ComponentOptions): Promise<void> {
+export async function defineComponent(component) {
     if (component.selector) {
-        var template: string = component.template || "";
-        var styles: string[] = component.styles || [];
-
+        var template = component.template || "";
+        var styles = component.styles || [];
         if (component.templatePath) {
             await fetch(component.templatePath)
                 .then(res => res.ok ? res.text() : component.template)
@@ -66,20 +62,23 @@ export async function defineComponent(component: ComponentOptions): Promise<void
         if (component.stylesPath) {
             await fetch(component.stylesPath)
                 .then(res => res.ok ? res.text() : null)
-                .then((css) => { styles = css ? [css] : component.styles || []; })
+                .then((css) => { styles = css ? [css] : component.styles || []; });
         }
-
         setupComponent(component.selector, template, component.options || component.class || {});
-        for (const style of styles) { styleComponent(style) };
+        for (const style of styles) {
+            styleComponent(style);
+        }
+        ;
         document.dispatchEvent(new CustomEvent("component", { detail: component.selector }));
-    } else {
+    }
+    else {
         log(`Impossible to define component: ${JSON.stringify(component)}`, Collection.message_type.warning);
     }
 }
 /**Get Component elaborated from server */
-export async function serverComponent(url: string, timeoutConnection: number = 30000): Promise<void> {
+export async function serverComponent(url, timeoutConnection = 30000) {
     const request = () => {
-        let controller: AbortController = new AbortController();
+        let controller = new AbortController();
         setTimeout(() => { controller.abort(); }, timeoutConnection);
         return fetch(url, {
             method: "GET",
@@ -98,13 +97,14 @@ export async function serverComponent(url: string, timeoutConnection: number = 3
         await request()
             .then(res => res.ok ? res.json() : log(res.text, Collection.message_type.server_error))
             .then(component => defineComponent(component));
-    } catch (ex) {
+    }
+    catch (ex) {
         log(ex, Collection.message_type.error);
     }
 }
 /**Decorator for component initialization */
-export function lampComponent(args: Partial<ComponentOptions>) {
-    return (constructor: Function) => {
+export function lampComponent(args) {
+    return (constructor) => {
         if (args.selector) {
             defineComponent({
                 selector: args.selector,
@@ -115,5 +115,5 @@ export function lampComponent(args: Partial<ComponentOptions>) {
                 class: Object.create(constructor.prototype).clone()
             });
         }
-    }
+    };
 }

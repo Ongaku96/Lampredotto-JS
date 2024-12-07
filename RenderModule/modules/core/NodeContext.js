@@ -1,4 +1,4 @@
-
+"use strict";
 /**
  * Data collector for node's context
  * @date 28/3/2024 - 15:59:08
@@ -10,7 +10,6 @@
  * @implements {iNodeReferences}
  */
 // abstract class NodeContext {
-
 //     [key: string]: any;
 //     _app_: Application;
 //     _element_: Element | undefined;
@@ -24,7 +23,6 @@
 //      */
 //     private parentContext: NodeContext | undefined;
 //     private _events: iEvent<any>[] = [];
-
 //     constructor(node: vNode) {
 //         this._app_ = node.context._app_;
 //         this._element_ = node.isElement && node.reference.length ? <HTMLElement>node.reference[0] : undefined;
@@ -32,7 +30,6 @@
 //         let _ref = this;
 //         this._events.push({ name: Collection.node_event.progress, action: async function (state: string) { _ref.onProgress(state); } })
 //     }
-
 //     private onProgress(state: string): void {
 //         switch (state) {
 //             case Collection.lifecycle.creating:
@@ -64,9 +61,7 @@
 //                 break;
 //         }
 //     }
-
 //     public setParentContext(context: NodeContext) {
 //         this.parentContext = context;
 //     }
-
 // }

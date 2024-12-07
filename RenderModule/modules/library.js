@@ -1,88 +1,96 @@
 import { Collection } from "./enumerators.js";
 import { primitive_types } from "./global.js";
 import { _vault_key, react } from "./reactive.js";
-import { DataCollection, Formatter, QueryElement, ReactivityOptions, Settings } from "./types.js";
-
-export namespace Support {
-
-
+export var Support;
+(function (Support) {
     /**Execute a stringified function */
-    export function runFunctionByString(script: string, context: object, evt?: Event, _return: boolean = true): any {
+    function runFunctionByString(script, context, evt, _return = true) {
         try {
-            var _script: string = cleanScript();
-            let _function: Function = new Function("evt", _script);
+            var _script = cleanScript();
+            let _function = new Function("evt", _script);
             return _function.call(context, evt);
-        } catch (ex) {
+        }
+        catch (ex) {
             throw "error executing script {" + script + "}: " + ex;
         }
-
         function cleanScript() {
-            var _script: string = script
+            var _script = script
                 .replace(/'/g, '"')
                 .replace(/\n/g, "\\n")
                 .replace(Collection.regexp.appdata, (match) => {
-                    let _formatted_match = match.slice(1);
-                    return `this${_formatted_match}`;
-                });
-            if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\"")) _script = "\"" + _script + "\"";
-            if (!_script.includes("return") && _return) _script = "return " + _script;
+                let _formatted_match = match.slice(1);
+                return `this${_formatted_match}`;
+            });
+            if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\""))
+                _script = "\"" + _script + "\"";
+            if (!_script.includes("return") && _return)
+                _script = "return " + _script;
             return _script;
         }
     }
+    Support.runFunctionByString = runFunctionByString;
     /**Get list of app's dataset properties that are included in the script */
-    export function getPropertiesFromScript(script: string): string[] {
-        let _props: string[] = [];
-        let _match: RegExpExecArray | null;
+    function getPropertiesFromScript(script) {
+        let _props = [];
+        let _match;
         if (script.includes("$.")) {
             while ((_match = Collection.regexp.appdata.exec(script)) !== null) {
                 _props.push(_match[0].replace("$.", ""));
             }
-        } else {
+        }
+        else {
             _props.push(script);
         }
         return _props;
     }
+    Support.getPropertiesFromScript = getPropertiesFromScript;
     /**
      * Function to sort alphabetically an array of objects by some specific key.
      *
      * @param {String}; property Key of the object to sort.
      */
-    export function dynamicSort(property: string, desc: boolean): (a: any, b: any) => number {
+    function dynamicSort(property, desc) {
         try {
-            return function (a: any, b: any) {
-                let _first: any = property ? getValue(a, property) : a;
-                let _second: any = property ? getValue(b, property) : b;
-
+            return function (a, b) {
+                let _first = property ? getValue(a, property) : a;
+                let _second = property ? getValue(b, property) : b;
                 if (isNaN(_first)) {
                     if (desc) {
                         return _second.localeCompare(_first);
-                    } else {
+                    }
+                    else {
                         return _first.localeCompare(_second);
                     }
-                } else {
+                }
+                else {
                     if (desc) {
                         return _second - _first;
-                    } else {
+                    }
+                    else {
                         return _first - _second;
                     }
                 }
             };
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.dynamicSort = dynamicSort;
     /**Deep copy of array values copied by value and not by ref*/
-    export function duplicateArray(array: any[]): any[] {
+    function duplicateArray(array) {
         try {
             return JSON.parse(JSON.stringify(array));
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.duplicateArray = duplicateArray;
     /**merge multiple array in one */
-    export function mergeArrays(...arrays: never[][]): any[] {
+    function mergeArrays(...arrays) {
         try {
-            let _result: never[] = [];
+            let _result = [];
             for (const array of arrays) {
                 if (array) {
                     for (const item of array) {
@@ -93,60 +101,74 @@ export namespace Support {
                 }
             }
             return _result;
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.mergeArrays = mergeArrays;
     /**get unique ID */
-    export function uniqueID(): string {
+    function uniqueID() {
         return Math.floor(Math.random() * Date.now()).toString(36);
     }
+    Support.uniqueID = uniqueID;
     /**Elaborate tag and return object path stored inside */
-    export function getPathFromTag(tag: string, prefix: string = ""): string {
+    function getPathFromTag(tag, prefix = "") {
         try {
-            if (prefix) tag = tag.replace(prefix + ".", "");
+            if (prefix)
+                tag = tag.replace(prefix + ".", "");
             return tag.replace("{{", "").replace("}}", "").trim();
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.getPathFromTag = getPathFromTag;
     /**Check if two objects has the same keys */
-    export function compareKeys(obj1: any, obj2: any) {
+    function compareKeys(obj1, obj2) {
         try {
             let _a = Object.keys(obj1).sort();
             let _b = Object.keys(obj2).sort();
             return JSON.stringify(_a) === JSON.stringify(_b);
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.compareKeys = compareKeys;
     /**Check if value is that datatype  */
-    export function checkDataType(value: any, type: string): boolean { return typeof value == type; }
+    function checkDataType(value, type) { return typeof value == type; }
+    Support.checkDataType = checkDataType;
     /**check if value is not object or array or a function */
-    export function isPrimitive(value: any): boolean { return primitive_types.includes(typeof value); }
+    function isPrimitive(value) { return primitive_types.includes(typeof value); }
+    Support.isPrimitive = isPrimitive;
     /**Check if object is undefined or has properties */
-    export function isEmpty(obj?: object): boolean { return obj == null || Object.getOwnPropertyNames(obj).length === 0; }
+    function isEmpty(obj) { return obj == null || Object.getOwnPropertyNames(obj).length === 0; }
+    Support.isEmpty = isEmpty;
     /**Get value of object by a given string path of properties */
-    export function getValue(prop: any, path: string): any {
+    function getValue(prop, path) {
         try {
             if (path && typeof path == "string") {
                 let _array_path = path.replace(/\]/g, "").split(/[.\[]+/g);
                 for (var i = 0; i < _array_path.length; i++) {
                     if (prop != null && !isPrimitive(prop) && _array_path[i] in prop) {
                         prop = prop[_array_path[i]];
-                    } else {
+                    }
+                    else {
                         return i > 0 ? "" : undefined;
                     }
                 }
                 return prop;
             }
             return prop[path];
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.getValue = getValue;
     /**Set value of object by a given string path of properties */
-    export function setValue(prop: any, path: string, value: any) {
+    function setValue(prop, path, value) {
         try {
             if (path) {
                 let _array_path = path.replace(/\]/g, "").split(/[.\[]+/g);
@@ -154,30 +176,35 @@ export namespace Support {
                     if (prop) {
                         if (value !== undefined && i == _array_path.length - 1) {
                             prop[_array_path[i]] = value;
-                        } else {
+                        }
+                        else {
                             prop = prop[_array_path[i]];
                         }
                     }
                 }
             }
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.setValue = setValue;
     /**Stamp value based on passed format*/
-    export function format(value: any, formatters: Formatter[] | undefined): any {
+    function format(value, formatters) {
         try {
             if (formatters) {
                 let _formatter = formatters?.find(f => typeof f.type == "string" ? f.type === typeof value : value instanceof f.type);
                 return _formatter ? _formatter.stamp(value) : value;
             }
             return value;
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.format = format;
     /**Convert string to HTML content inside a Document Fragment*/
-    export function templateFromString(template_text: string): DocumentFragment {
+    function templateFromString(template_text) {
         try {
             template_text = template_text.trim();
             let _template = document.createElement("template");
@@ -187,18 +214,21 @@ export namespace Support {
                 _template.innerHTML = _inner_template.innerHTML;
             }
             return _template.content;
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
+    Support.templateFromString = templateFromString;
     /**Build render reactive data context joining all data sets, actions and computed parameters */
-    export async function elaborateContext(context: DataCollection, dataset?: DataCollection, reactivity?: ReactivityOptions, actions?: DataCollection, computed?: DataCollection): Promise<DataCollection> {
+    async function elaborateContext(context, dataset, reactivity, actions, computed) {
         //Define values from dataset
         if (dataset) {
             for (let param of Object.keys(dataset)) {
                 try {
                     context[param] = react(dataset[param], reactivity);
-                } catch (ex) {
+                }
+                catch (ex) {
                     throw ex;
                 }
             }
@@ -206,7 +236,7 @@ export namespace Support {
         //define values from actions
         if (actions) {
             for (let action of Object.keys(actions)) {
-                context[action] = function (...args: any[]) { return actions[action].call(react(context, reactivity), ...args); };
+                context[action] = function (...args) { return actions[action].call(react(context, reactivity), ...args); };
             }
         }
         //define values from getters
@@ -219,17 +249,18 @@ export namespace Support {
                 });
             }
         }
-
         return context;
     }
+    Support.elaborateContext = elaborateContext;
     /**Check if debug mode is active */
-    export function debug(settings: Settings, mode?: string): boolean | undefined {
+    function debug(settings, mode) {
         return settings.debug && (settings.debug_mode ? (mode ? (settings.debug_mode == Collection.debug_mode.all || settings.debug_mode == mode) : true) : true);
     }
+    Support.debug = debug;
     /**Clone Data Collection */
-    export function cloneCollection(context: DataCollection): DataCollection {
+    function cloneCollection(context) {
         try {
-            let _data: DataCollection = {};
+            let _data = {};
             for (const key of Reflect.ownKeys(context)) {
                 if (key != _vault_key) {
                     // get: (_target: any, _key: any) => {
@@ -237,10 +268,11 @@ export namespace Support {
                     //     return Reflect.get(context, key);
                     // },
                     let _react = {
-                        set: (_target: any, _key: any, newvalue: any) => {
-                            if (newvalue != Reflect.get(context, key)) Reflect.set(context, key, newvalue);
+                        set: (_target, _key, newvalue) => {
+                            if (newvalue != Reflect.get(context, key))
+                                Reflect.set(context, key, newvalue);
                         }
-                    }
+                    };
                     // if (Support.isPrimitive(Reflect.get(context, key))) {
                     //     ref(context, key.toString(), _react);
                     // } else {
@@ -249,15 +281,17 @@ export namespace Support {
                 }
             }
             return _data;
-        } catch (ex) {
+        }
+        catch (ex) {
             throw ex;
         }
     }
-    export function deepClone(obj: any): any {
+    Support.cloneCollection = cloneCollection;
+    function deepClone(obj) {
         if (obj === null || typeof obj !== 'object') {
             return obj;
         }
-        const clone: any = Array.isArray(obj) ? [] : Object.assign(Object.create(Object.getPrototypeOf(obj)));
+        const clone = Array.isArray(obj) ? [] : Object.assign(Object.create(Object.getPrototypeOf(obj)));
         for (const key in obj) {
             if (obj.hasOwnProperty(key)) {
                 clone[key] = deepClone(obj[key]);
@@ -265,29 +299,33 @@ export namespace Support {
         }
         return clone;
     }
+    Support.deepClone = deepClone;
     /**Check if a value is an Array */
-    export function isArray(value: any) {
+    function isArray(value) {
         return typeof value == 'function' && Array.isArray(value());
     }
+    Support.isArray = isArray;
     /**Get all comments from root dom element */
-    export function getComment(content: string): Node | null {
+    function getComment(content) {
         // Fourth argument, which is actually obsolete according to the DOM4 standard, is required in IE 11
         var iterator = document.createNodeIterator(document.body, NodeFilter.SHOW_COMMENT, filterNone);
         var curNode;
         while (curNode = iterator.nextNode()) {
-            if (curNode.nodeValue === content) return curNode;
+            if (curNode.nodeValue === content)
+                return curNode;
         }
         return null;
-
         function filterNone() {
             return NodeFilter.FILTER_ACCEPT;
         }
     }
+    Support.getComment = getComment;
     /**Check if event is native */
-    export function isNativeEvent(eventname: any): boolean {
+    function isNativeEvent(eventname) {
         return typeof Reflect.get(document.body, "on" + eventname) !== "undefined";
     }
-    export function checkQuery(element: HTMLElement, query: QueryElement | string) {
+    Support.isNativeEvent = isNativeEvent;
+    function checkQuery(element, query) {
         if (typeof query == "string") {
             return element.closest(query) === element;
         }
@@ -295,15 +333,17 @@ export namespace Support {
             element.nodeName.toUpperCase() == query.nodeName?.toUpperCase() ||
             query.class ? element.className.includes(query.class || "") : false;
     }
-}
-
-export namespace View {
-
-    export function darkmode() {
+    Support.checkQuery = checkQuery;
+})(Support || (Support = {}));
+export var View;
+(function (View) {
+    function darkmode() {
         if (document.body.getAttribute("theme")) {
             document.body.setAttribute("theme", "");
-        } else {
+        }
+        else {
             document.body.setAttribute("theme", "dark");
         }
     }
-}
+    View.darkmode = darkmode;
+})(View || (View = {}));

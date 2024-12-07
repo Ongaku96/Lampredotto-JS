@@ -1,5 +1,4 @@
 import { defineComponent } from "../../LampRender.js";
-
 defineComponent({
     selector: "float-container",
     template: "<div float-container='hide'></div>",
@@ -7,34 +6,36 @@ defineComponent({
         `[floating-item]{display:none;position:fixed;top:0;left:0;overflow-y:auto;}`,
         `[float-container]{position:relative;}`,
         `[float-container='hide']>[floating-item]{display:none;}`,
-        `[float-container='show']:not([disabled])>[floating-item]{display: block;}`,],
+        `[float-container='show']:not([disabled])>[floating-item]{display: block;}`,
+    ],
 });
-
 export const menu_keys = {
     container: "float-container",
     toggle: "float-toggle",
     item: "floating-item",
-    query: (key: string) => "[" + key + "]"
-}
+    query: (key) => "[" + key + "]"
+};
 /**Setup of floating elements position and */
-export function floatingMenuManagement(evt: Event) {
-    var clickedElement = <HTMLElement>evt.target;
+export function floatingMenuManagement(evt) {
+    var clickedElement = evt.target;
     let _parent = clickedElement?.closest(menu_keys.query(menu_keys.container));
-
-    if (isUnfocused()) { closeOpenedMenus(clickedElement); return; }
+    if (isUnfocused()) {
+        closeOpenedMenus(clickedElement);
+        return;
+    }
     if (isToggle()) {
         closeOpenedMenus(clickedElement);
         if (_parent && _parent.getAttribute(menu_keys.container) != "show") {
-            let _item = <HTMLElement>_parent.querySelector(menu_keys.query(menu_keys.item));
-            if (_item) openFloatingMenu(_item);
+            let _item = _parent.querySelector(menu_keys.query(menu_keys.item));
+            if (_item)
+                openFloatingMenu(_item);
         }
     }
     function isUnfocused() {
         if (clickedElement) {
             let virtualCondition = "virtual" in clickedElement ?
                 !clickedElement.virtual?.childOf({ attribute: menu_keys.item }) &&
-                !clickedElement.virtual?.childOf({ attribute: menu_keys.toggle }) : true;
-
+                    !clickedElement.virtual?.childOf({ attribute: menu_keys.toggle }) : true;
             return virtualCondition;
         }
         return true;
@@ -43,11 +44,12 @@ export function floatingMenuManagement(evt: Event) {
         if (clickedElement) {
             return clickedElement.closest(menu_keys.query(menu_keys.toggle)) != null ||
                 "virtual" in clickedElement && clickedElement.virtual?.childOf({ attribute: menu_keys.toggle });
-        } return false;
+        }
+        return false;
     }
 }
 /**open a floating menu */
-export function openFloatingMenu(item: HTMLElement) {
+export function openFloatingMenu(item) {
     if (item != null) {
         let _container = item.closest(menu_keys.query(menu_keys.container));
         _container?.setAttribute(menu_keys.container, "show");
@@ -55,13 +57,10 @@ export function openFloatingMenu(item: HTMLElement) {
         // item.style.minWidth = _container_rect.width + "px";
         let _rect = item.getBoundingClientRect();
         let _position = item.getAttribute(menu_keys.item);
-
         let _left = _container_rect?.left;
         let _top = _container_rect?.top || 0;
-
         const _margin = 4;
         switch (_position) {
-
             case "top left":
                 item.style.left = _left + "px";
                 item.style.top = (_top + _rect.height + _margin) + "px";
@@ -99,9 +98,8 @@ export function openFloatingMenu(item: HTMLElement) {
                 item.style.top = (_container_rect.y + _rect.height + _margin) > window.innerHeight ?
                     (_container_rect.y - (_rect.height + _margin)) + "px" :
                     (_top + _container_rect.height + _margin) + "px";
-                item.style.width = (<HTMLElement>_container).offsetWidth + "px";
+                item.style.width = _container.offsetWidth + "px";
                 break;
-
             default:
                 item.style.left = _left + "px";
                 item.style.top = (_container_rect.y + _rect.height + _margin) > window.innerHeight ?
@@ -111,13 +109,13 @@ export function openFloatingMenu(item: HTMLElement) {
         }
     }
 }
-
-export function closeFloatingItems(evt: Event) {
-    closeOpenedMenus(<HTMLElement>evt.currentTarget);
+export function closeFloatingItems(evt) {
+    closeOpenedMenus(evt.currentTarget);
 }
 /**close all opened floating menus */
-export function closeOpenedMenus(item: HTMLElement) {
+export function closeOpenedMenus(item) {
     document.querySelectorAll("div[" + menu_keys.container + " = 'show']").forEach((e) => {
-        if ((item && !e.contains(item)) || item == null) e.setAttribute(menu_keys.container, "hide");
+        if ((item && !e.contains(item)) || item == null)
+            e.setAttribute(menu_keys.container, "hide");
     });
 }

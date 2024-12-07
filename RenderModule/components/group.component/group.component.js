@@ -1,5 +1,4 @@
 import { defineComponent } from "../../LampRender.js";
-
 defineComponent({
     selector: "group-component",
     template: "<div group-component></div>",

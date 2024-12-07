@@ -188,13 +188,17 @@ export class vNode {
             switch (this.nodeType) {
                 case Node.ELEMENT_NODE:
                     if (this._commands.find(c => c instanceof cIf) != null) {
-                        this._commands.forEach(c => { if (c instanceof cIf)
-                            c.render(this); });
+                        this._commands.forEach(c => {
+                            if (c instanceof cIf)
+                                c.render(this);
+                        });
                     }
                     else {
                         if (this._commands.find(c => c instanceof cFor) != null) {
-                            this._commands.forEach(c => { if (c instanceof cFor)
-                                c.render(this); });
+                            this._commands.forEach(c => {
+                                if (c instanceof cFor)
+                                    c.render(this);
+                            });
                         }
                         else {
                             for (let comm of this._commands) {
@@ -315,8 +319,7 @@ export class vNode {
     onProgress(action) {
         this._handler.on(Collection.node_event.progress, action);
         let id = this.element?.getAttribute("id");
-        if (id)
-            document.dispatchEvent(new CustomEvent(id, { detail: this, cancelable: true, }));
+        if (id) document.dispatchEvent(new CustomEvent(id, { detail: this, cancelable: true, }));
     }
     onInject(action) {
         this._handler.on(Collection.node_event.inject, action);
@@ -764,36 +767,36 @@ export class vTemplate extends vNode {
         else { //definition by object
             return Support.elaborateContext({}, this.data_options.dataset, newLocal, this.data_options.actions, this.data_options.computed)
                 .then((output) => {
-                for (const attr of this.attributes) {
-                    if (!(attr.prop in output && attr.name == "")) {
-                        var options = {
-                            handler: this._handler,
-                            node: this,
-                            get: (_target, _key, _context) => {
-                                if (attr.ref) {
-                                    return attr.dynamic ? elaborateContent(attr.ref, this.context) || "" : attr.ref;
+                    for (const attr of this.attributes) {
+                        if (!(attr.prop in output && attr.name == "")) {
+                            var options = {
+                                handler: this._handler,
+                                node: this,
+                                get: (_target, _key, _context) => {
+                                    if (attr.ref) {
+                                        return attr.dynamic ? elaborateContent(attr.ref, this.context) || "" : attr.ref;
+                                    }
+                                    return Support.getValue(_target, _vault_key + "." + _key);
+                                },
+                                set: (_target, _key, newvalue) => {
+                                    if (attr.dynamic && attr.ref != null) {
+                                        if (Reflect.get(this.context, attr.ref) !== newvalue)
+                                            Support.setValue(this.context, attr.ref, newvalue);
+                                    }
+                                    else {
+                                        if (Reflect.get(_target, _key) !== newvalue)
+                                            Support.setValue(_target, _vault_key + "." + _key, newvalue);
+                                    }
                                 }
-                                return Support.getValue(_target, _vault_key + "." + _key);
-                            },
-                            set: (_target, _key, newvalue) => {
-                                if (attr.dynamic && attr.ref != null) {
-                                    if (Reflect.get(this.context, attr.ref) !== newvalue)
-                                        Support.setValue(this.context, attr.ref, newvalue);
-                                }
-                                else {
-                                    if (Reflect.get(_target, _key) !== newvalue)
-                                        Support.setValue(_target, _vault_key + "." + _key, newvalue);
-                                }
-                            }
-                        };
-                        ref(output, attr.prop, attr.ref, options);
-                        if (attr.name && output[Collection.KeyWords.reference])
-                            output[Collection.KeyWords.reference].removeAttribute(attr.name);
+                            };
+                            ref(output, attr.prop, attr.ref, options);
+                            if (attr.name && output[Collection.KeyWords.reference])
+                                output[Collection.KeyWords.reference].removeAttribute(attr.name);
+                        }
                     }
-                }
-                output = this.setKeywords(output);
-                return react(output, newLocal);
-            });
+                    output = this.setKeywords(output);
+                    return react(output, newLocal);
+                });
         }
     }
     async elaborateContext(context, storage) {

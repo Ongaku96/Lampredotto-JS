@@ -314,6 +314,8 @@ export class vNode {
     /**Define events on state's changes */
     onProgress(action: (...args: any[]) => any) {
         this._handler.on(Collection.node_event.progress, action);
+        let id = this.element?.getAttribute("id");
+        if (id) document.dispatchEvent(new CustomEvent(id, { detail: this, cancelable: true, }));
     }
     onInject(action: (...args: any[]) => any) {
         this._handler.on(Collection.node_event.inject, action);

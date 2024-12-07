@@ -197,6 +197,7 @@ class Application {
             if (Support.debug(this.settings, Collection.debug_mode.message))
                 log("Application [" + this.name + "] changed to '" + state + (message ? " with message '" + message + "'" : ""));
 
+            document.dispatchEvent(new CustomEvent("lamp", { detail: this, cancelable: true, }));
             switch (state) {
                 case Collection.lifecycle.updating:
                     if (Support.debug(this.settings, Collection.debug_mode.command))

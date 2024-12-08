@@ -256,6 +256,10 @@ class CommandVisitor {
     }
 
     private setupEvents(command: Command) {
+        if (this.node.isElement && this.node.element?.hasAttribute("id") && command != null) {
+            let id = (<HTMLElement>this.node.element).getAttribute("id");
+            if (id) document.dispatchEvent(new CustomEvent(id, { detail: this.node, cancelable: true, }));
+        }
         // command.handler.on(Collection.node_event.setup,
         //     async (output) => {
         //         if (Support.debug(this.node.settings, Collection.debug_mode.command))

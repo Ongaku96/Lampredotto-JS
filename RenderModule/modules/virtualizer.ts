@@ -152,9 +152,9 @@ export class vNode {
     async elaborate(context?: DataCollection, storage?: DataCollection) {
         this.state = Collection.lifecycle.mounting;
 
-        if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
-            (<Element>this.reference[0]).setAttribute("data-id", this.id);
-        }
+        // if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
+        //     (<Element>this.reference[0]).setAttribute("data-id", this.id);
+        // }
 
         try {
             await this.elaborateContext(context, storage);
@@ -219,8 +219,8 @@ export class vNode {
                             }
                         }
                         this.replaceNodes();
-                        if (Support.debug(this.settings, Collection.debug_mode.command))
-                            log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
+                        // if (Support.debug(this.settings, Collection.debug_mode.command))
+                        //     log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                     }
                     break;
             }

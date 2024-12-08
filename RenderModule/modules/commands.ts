@@ -256,16 +256,16 @@ class CommandVisitor {
     }
 
     private setupEvents(command: Command) {
-        command.handler.on(Collection.node_event.setup,
-            async (output) => {
-                if (Support.debug(this.node.settings, Collection.debug_mode.command))
-                    log({ command: this.node.id + " - " + command.constructor.name.toUpperCase(), event: "SETUP", node: this, data: output }, Collection.message_type.debug);
-            });
-        command.handler.on(Collection.node_event.render,
-            async (output) => {
-                if (Support.debug(this.node.settings, Collection.debug_mode.command))
-                    log({ command: this.node.id + " - " + command.constructor.name.toUpperCase(), event: "RENDER", node: this, data: output }, Collection.message_type.debug);
-            });
+        // command.handler.on(Collection.node_event.setup,
+        //     async (output) => {
+        //         if (Support.debug(this.node.settings, Collection.debug_mode.command))
+        //             log({ command: this.node.id + " - " + command.constructor.name.toUpperCase(), event: "SETUP", node: this, data: output }, Collection.message_type.debug);
+        //     });
+        // command.handler.on(Collection.node_event.render,
+        //     async (output) => {
+        //         if (Support.debug(this.node.settings, Collection.debug_mode.command))
+        //             log({ command: this.node.id + " - " + command.constructor.name.toUpperCase(), event: "RENDER", node: this, data: output }, Collection.message_type.debug);
+        //     });
     }
 
     private readAttribute(param: string | undefined): string {

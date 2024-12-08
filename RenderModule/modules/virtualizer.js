@@ -149,9 +149,9 @@ export class vNode {
     /**First elaboration of node, context definition and rendering  */
     async elaborate(context, storage) {
         this.state = Collection.lifecycle.mounting;
-        if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
-            this.reference[0].setAttribute("data-id", this.id);
-        }
+        // if (Support.debug(this.settings) && this.reference.length && this.reference[0].nodeType == Node.ELEMENT_NODE) {
+        //     (<Element>this.reference[0]).setAttribute("data-id", this.id);
+        // }
         try {
             await this.elaborateContext(context, storage);
             await this.render();
@@ -221,8 +221,8 @@ export class vNode {
                             }
                         }
                         this.replaceNodes();
-                        if (Support.debug(this.settings, Collection.debug_mode.command))
-                            log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
+                        // if (Support.debug(this.settings, Collection.debug_mode.command))
+                        //     log({ command: this.id + " - TEXT", value: _debug, origin: this.backup.nodeValue }, Collection.message_type.debug);
                     }
                     break;
             }
@@ -314,6 +314,9 @@ export class vNode {
     /**Define events on state's changes */
     onProgress(action) {
         this._handler.on(Collection.node_event.progress, action);
+        let id = this.element?.getAttribute("id");
+        if (id)
+            document.dispatchEvent(new CustomEvent(id, { detail: this, cancelable: true, }));
     }
     onInject(action) {
         this._handler.on(Collection.node_event.inject, action);

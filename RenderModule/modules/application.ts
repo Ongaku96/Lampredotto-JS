@@ -197,24 +197,24 @@ class Application {
             if (Support.debug(this.settings, Collection.debug_mode.message))
                 log("Application [" + this.name + "] changed to '" + state + (message ? " with message '" + message + "'" : ""));
 
-            document.dispatchEvent(new CustomEvent("lamp", { detail: this, cancelable: true, }));
-            switch (state) {
-                case Collection.lifecycle.updating:
-                    if (Support.debug(this.settings, Collection.debug_mode.command))
-                        console.clear();
-                    break;
-                case Collection.lifecycle.updated:
-                    if (Support.debug(this.settings, this.name)) {
-                        console.clear();
-                        log(this.vdom, Collection.message_type.debug);
-                    }
-                    break;
-                case Collection.lifecycle.mounted:
-                    if (Support.debug(this.settings, this.name))
-                        log(this.vdom, Collection.message_type.debug);
-                    break;
+            document.dispatchEvent(new CustomEvent(this.name, { detail: this, cancelable: true, }));
+            // switch (state) {
+            //     case Collection.lifecycle.updating:
+            //         if (Support.debug(this.settings, Collection.debug_mode.command))
+            //             console.clear();
+            //         break;
+            //     case Collection.lifecycle.updated:
+            //         if (Support.debug(this.settings, this.name)) {
+            //             console.clear();
+            //             log(this.vdom, Collection.message_type.debug);
+            //         }
+            //         break;
+            //     case Collection.lifecycle.mounted:
+            //         if (Support.debug(this.settings, this.name))
+            //             log(this.vdom, Collection.message_type.debug);
+            //         break;
 
-            }
+            // }
         });
         this.onChange(() => {
             if (this.vdom != null)

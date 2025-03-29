@@ -1,7 +1,7 @@
 import REST from "./REST.js";
 export class GetService extends REST {
-    constructor(url) {
-        super(url, "GET");
+    constructor(options) {
+        super({ ...options, method: "GET" });
     }
     async json() {
         return this.fetch().then((response) => {

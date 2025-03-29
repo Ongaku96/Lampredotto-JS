@@ -2,42 +2,31 @@ import { exception, default_timer } from "./references.js";
 import ConnectionTimeoutInjector from "./connection.js";
 export default class REST {
     static timer = 30000;
-    options = {
-        url: "",
-        method: "GET",
-        mode: "cors",
-        cache: "no-cache",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", },
-        redirect: "follow",
-        policy: "no-referrer",
-        data: undefined
-    };
+    options;
     get method() { return this.options.method; }
     get url() { return this.options.url; }
     get body() { return this.options.data; }
     controller = new AbortController();
     connectionTimer = default_timer;
-    constructor(url, method, body) {
-        this.options.url = url;
-        this.options.method = method;
-        this.options.data = body;
+    constructor(options) {
+        this.options = {
+            ...options,
+            method: options.method || "GET",
+            mode: options.mode || "cors",
+            cache: options.cache || "no-cache",
+            credentials: options.credentials || "same-origin",
+            headers: options.headers || {
+                "Content-Type": "application/json",
+            },
+            redirect: options.redirect || "follow",
+            referrerPolicy: options.referrerPolicy || "no-referrer",
+            body: options.body,
+            signal: options.controller?.signal,
+        };
     }
     request() {
         let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
-        return fetch(this.options.url, {
-            method: this.options.method || "GET",
-            mode: this.options.mode || "cors",
-            cache: this.options.cache || "no-cache",
-            credentials: this.options.credentials || "same-origin",
-            headers: this.options.headers || {
-                "Content-Type": "application/json",
-            },
-            redirect: this.options.redirect || "follow",
-            referrerPolicy: this.options.policy || "no-referrer",
-            body: this.options.data,
-            signal: controller.signal,
-        }).then((response) => {
+        return fetch(this.options.url, this.options).then((response) => {
             controller.resetTimer();
             return response;
         });

@@ -10,25 +10,25 @@ export default class ServiceFactory {
         let service;
         switch (type) {
             case "post":
-                service = new PostService(options.url, options.data);
+                service = new PostService(options);
                 break;
             case "put":
-                service = new PutService(options.url, options.data);
+                service = new PutService(options);
                 break;
             case "delete":
-                service = new DeleteService(options.url);
+                service = new DeleteService(options);
                 break;
             case "upload":
-                service = new UploadService(options.url, options.data, options.method || "POST");
-                break;
+                service = new UploadService(options);
+                break; //, options.data, options.method || "POST"
             case "update":
-                service = new UpdateService(options.url, options.data);
-                break;
+                service = new UpdateService(options);
+                break; //.url, options.data
             case "insert":
-                service = new InsertService(options.url, options.data);
-                break;
+                service = new InsertService(options);
+                break; //.url, options.data
             default:
-                service = new GetService(options.url);
+                service = new GetService(options);
                 break;
         }
         if (options.controller != null)

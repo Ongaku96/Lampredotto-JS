@@ -1,4 +1,5 @@
 import { User } from "./modules/user.js";
+import EventCollector from "./modules/events.js";
 export default class UserHandler {
     session_key = "active_user";
     static _default = null;
@@ -8,7 +9,7 @@ export default class UserHandler {
             this._default = new UserHandler();
         return this._default;
     }
-    _events; //events collector
+    _events = new EventCollector(); //events collector
     _logged_user; //current user
     /**Get current user */
     get logged() { return this._logged_user != null; }
@@ -16,13 +17,7 @@ export default class UserHandler {
     get user() { return this._logged_user?.data; }
     /**Get current user stored settings */
     get settings() { return this._logged_user?.settings; }
-    constructor() {
-        this._events = [
-            { name: "login" },
-            { name: "logout" },
-            { name: "error" }
-        ];
-    }
+    constructor() { }
     /**Login function store new user's data and settings in local storage altought it refresh existing user's data and save it in session storage and trigger login event*/
     login(id, data, settings) {
         try {
@@ -38,7 +33,7 @@ export default class UserHandler {
             console.log("LAMP ACCESS: " + ex);
         }
     }
-    /** */
+    /**Logout function remove the user on session storage and trigger logout event */
     logout() {
         try {
             this._logged_user = undefined;
@@ -50,26 +45,38 @@ export default class UserHandler {
             console.log("LAMP ACCESS: " + ex);
         }
     }
+    /**
+     * Register login event
+     * @param action
+     */
     onLogin(action) {
-        let _event = this._events.find(e => e.name == "login");
-        if (_event)
-            _event["action"] = action;
+        this._events.registerEvent("login", action);
     }
+    /**
+     * Register logout event
+     * @param action
+     */
     onLogout(action) {
-        let _event = this._events.find(e => e.name == "logout");
-        if (_event)
-            _event["action"] = action;
+        this._events.registerEvent("logout", action);
     }
+    /**
+     * Register error event
+     * @param action
+     */
     onError(action) {
-        let _event = this._events.find(e => e.name == "error");
-        if (_event)
-            _event["action"] = action;
+        this._events.registerEvent("error", action);
     }
+    /**
+     * Check if the user is already logged on Session Storage and retrive its data
+     */
     sessionLogin() {
         this._logged_user = this.getSessionUser();
         if (this.logged)
             this.triggerEvent("login");
     }
+    /**
+     * Save user data on Local Storage
+     */
     saveUser() {
         try {
             this._logged_user?.save();
@@ -79,6 +86,12 @@ export default class UserHandler {
             console.log("LAMP ACCESS: " + ex);
         }
     }
+    /**
+     * Update user data from Local Storage
+     * @param id
+     * @param data
+     * @returns
+     */
     refreshUser(id, data) {
         try {
             this._logged_user = User.retrive(id, data);
@@ -90,12 +103,9 @@ export default class UserHandler {
         }
         return false;
     }
-    triggerEvent(name, arg) {
+    async triggerEvent(name, ...args) {
         try {
-            let _event = this._events.find(e => e.name == name);
-            if (_event && _event.action != null) {
-                _event.action(arg == null ? this._logged_user : arg);
-            }
+            this._events.triggerEvent(name, ...args, this._logged_user);
         }
         catch (ex) {
             console.error("LAMP ACCESS: - " + name + " event trigger - " + ex);

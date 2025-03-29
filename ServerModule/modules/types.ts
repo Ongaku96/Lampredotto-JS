@@ -1,13 +1,14 @@
+type ServiceType = "GET" | "POST" | "PUT" | "DELETE" | "UPLOAD" | "UPDATE" | "INSERT";
 type HTTPOptions = {
-    url: string,
-    method?: string,
-    data?: BodyInit,
+    method?: ServiceType,
+    body?: BodyInit,
     mode?: "no-cors" | "cors" | "same-origin",
     cache?: "default" | "no-cache" | "reload" | "force-cache" | "only-if-cached",
     credentials?: "include" | "same-origin" | "omit",
     headers?: HeadersInit,
     redirect?: "manual" | "follow" | "error",
-    policy?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url",
+    referrerPolicy?: "no-referrer" | "no-referrer-when-downgrade" | "origin" | "origin-when-cross-origin" | "same-origin" | "strict-origin" | "strict-origin-when-cross-origin" | "unsafe-url",
+    signal?: AbortSignal
 }
 
 type AbortRule = (ctrl: AbortController) => void
@@ -17,14 +18,12 @@ export interface iREST {
     controller: AbortController
 }
 
-type ServiceType = "get" | "post" | "put" | "delete" | "upload" | "update" | "insert";
-type Methods = "GET" | "POST" | "PUT" | "DELETE" | "GET"
-type FactoryOptions = {
+type RequestOptions = HTTPOptions & {
     url: string,
     data?: object | FormData,
-    method?: Methods,
     connectionTimer?: number,
-    controller?: AbortController,
+    controller?: AbortController
 }
+type PartialWithRequired<T, K extends keyof T> = Partial<T> & Required<Pick<T, K>>;
 
-export type { HTTPOptions, AbortRule, ServiceType, FactoryOptions, Methods }
+export type { HTTPOptions, AbortRule, ServiceType, RequestOptions, PartialWithRequired }

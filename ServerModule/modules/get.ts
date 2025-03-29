@@ -1,9 +1,9 @@
 import REST from "./REST.js";
+import { PartialWithRequired, RequestOptions } from "./types.js";
 
 export class GetService extends REST {
-
-    constructor(url: string) {
-        super(url, "GET");
+    constructor(options: PartialWithRequired<RequestOptions, "url">) {
+        super({ ...options, method: "GET" });
     }
 
     async json(): Promise<object> {

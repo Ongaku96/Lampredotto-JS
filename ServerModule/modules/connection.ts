@@ -6,7 +6,7 @@ export default class ConnectionTimeoutInjector {
     get aborted() { return this.controller.signal.aborted; }
     constructor(controller: AbortController, timer: number) {
         this.controller = controller;
-        this.timer = setTimeout(() => { this.controller.abort("Connection Timeout"); }, timer);
+        this.timer = <number><unknown>setTimeout(() => { this.controller.abort("Connection Timeout"); }, timer);
     }
 
     resetTimer() {

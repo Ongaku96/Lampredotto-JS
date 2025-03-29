@@ -1,20 +1,10 @@
-import { HTTPOptions, iREST } from "./types.js";
+import { HTTPOptions, iREST, RequestOptions } from "./types.js";
 import { exception, default_timer } from "./references.js";
 import ConnectionTimeoutInjector from "./connection.js";
 
 export default class REST implements iREST {
     static timer: number = 30000;
-    options: HTTPOptions = {
-        url: "",
-        method: "GET",
-        mode: "cors",
-        cache: "no-cache",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", },
-        redirect: "follow",
-        policy: "no-referrer",
-        data: undefined
-    };
+    options: RequestOptions;
     get method() { return this.options.method; }
     get url() { return this.options.url; }
     get body() { return this.options.data; }
@@ -22,27 +12,26 @@ export default class REST implements iREST {
     controller: AbortController = new AbortController();
     connectionTimer: number = default_timer;
 
-    constructor(url: string, method: string, body?: BodyInit) {
-        this.options.url = url
-        this.options.method = method;
-        this.options.data = body;
+    constructor(options: RequestOptions) {
+        this.options = {
+            ...options,
+            method: options.method || "GET",
+            mode: options.mode || "cors",
+            cache: options.cache || "no-cache",
+            credentials: options.credentials || "same-origin",
+            headers: options.headers || {
+                "Content-Type": "application/json",
+            },
+            redirect: options.redirect || "follow",
+            referrerPolicy: options.referrerPolicy || "no-referrer",
+            body: options.body,
+            signal: options.controller?.signal,
+        }
     }
 
     protected request() {
         let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
-        return fetch(this.options.url, {
-            method: this.options.method || "GET",
-            mode: this.options.mode || "cors",
-            cache: this.options.cache || "no-cache",
-            credentials: this.options.credentials || "same-origin",
-            headers: this.options.headers || {
-                "Content-Type": "application/json",
-            },
-            redirect: this.options.redirect || "follow",
-            referrerPolicy: this.options.policy || "no-referrer",
-            body: this.options.data,
-            signal: controller.signal,
-        }).then((response) => {
+        return fetch(this.options.url, this.options as HTTPOptions).then((response) => {
             controller.resetTimer();
             return response;
         });
@@ -63,7 +52,7 @@ export default class REST implements iREST {
         });
     }
 
-    setOptions(options: HTTPOptions) {
+    setOptions(options: RequestOptions) {
         this.options = options;
     }
 

@@ -6,20 +6,20 @@ import { UploadService } from "./upload.js";
 import { UpdateService } from "./update.js";
 import { InsertService } from "./insert.js";
 import REST from "./REST.js";
-import { FactoryOptions } from "./types.js";
+import { PartialWithRequired, RequestOptions } from "./types.js";
 
 export default class ServiceFactory {
 
-    static instanceService(type: ServiceFactory, options: FactoryOptions) {
+    static instanceService(type: ServiceFactory, options: RequestOptions) {
         let service: REST;
         switch (type) {
-            case "post": service = new PostService(options.url, options.data); break;
-            case "put": service = new PutService(options.url, options.data); break;
-            case "delete": service = new DeleteService(options.url); break;
-            case "upload": service = new UploadService(options.url, options.data, options.method || "POST"); break;
-            case "update": service = new UpdateService(options.url, options.data); break;
-            case "insert": service = new InsertService(options.url, options.data); break;
-            default: service = new GetService(options.url); break;
+            case "post": service = new PostService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break;
+            case "put": service = new PutService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break;
+            case "delete": service = new DeleteService(options); break;
+            case "upload": service = new UploadService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //, options.data, options.method || "POST"
+            case "update": service = new UpdateService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //.url, options.data
+            case "insert": service = new InsertService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //.url, options.data
+            default: service = new GetService(options); break;
         }
         if (options.controller != null) service.setAbortController(options.controller);
         if (options.connectionTimer != null) service.setConnectionTimeout(options.connectionTimer);

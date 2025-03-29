@@ -2,11 +2,16 @@ import ConnectionTimeoutInjector from "./modules/connection.js";
 import { GetService } from "./modules/get.js";
 import { default_timer } from "./modules/references.js";
 import ServiceFactory from "./modules/serviceFactory.js";
+import { RequestOptions, ServiceType } from "./modules/types.js";
 
 export default class Service {
 
-    private connectionTimer: number = default_timer;
-    private controller: AbortController;
+    private options: RequestOptions = {
+        url: "",
+        connectionTimer: default_timer,
+        controller: new AbortController(),
+    };
+
     //#region  SINGLETON
     private static _instance: Service | null = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
@@ -15,43 +20,42 @@ export default class Service {
         return this._instance;
     }
     /**Instance new server service with personalized connection timeout rule */
-    static Instance(controller: AbortController, connectionTimer?: number) {
-        return new Service(controller, connectionTimer);
+    static Instance(options?: RequestOptions) {
+        return new Service(options);
     }
-    private constructor(controller?: AbortController, connectionTimer?: number) {
-        this.connectionTimer = connectionTimer ?? default_timer;
-        this.controller = controller ?? new AbortController();
+    private constructor(options?: RequestOptions) {
+        if(options) Object.assign(this.options, options);
     }
     //#endregion
 
     //#region REST API
     /**POST request with JSON data*/
     async post(url: string, data?: Object): Promise<Response> {
-        return ServiceFactory.instanceService("post", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+        return ServiceFactory.instanceService("POST", { ...this.options, url: url, data: data }).fetch();
     }
     /**PUT request with JSON data*/
     async put(url: string, data?: Object): Promise<Response> {
-        return ServiceFactory.instanceService("put", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+        return ServiceFactory.instanceService("PUT", { ...this.options, url: url, data: data }).fetch();
     }
     /**GET request */
     async get(url: string): Promise<Response> {
-        return ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+        return ServiceFactory.instanceService("GET", { ...this.options, url: url }).fetch();
     }
     /**DELETE request */
     async delete(url: string): Promise<Response> {
-        return ServiceFactory.instanceService("delete", { url: url, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+        return ServiceFactory.instanceService("DELETE", { ...this.options, url: url }).fetch();
     }
     /**POST or PUT request with Json or FormData*/
-    async upload(url: string, data: any, request: "PUT" | "POST" = "POST"): Promise<Response> {
-        return ServiceFactory.instanceService("upload", { url: url, data: data, method: request, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+    async upload(url: string, data: any, request: Extract<ServiceType, "PUT" | "POST"> = "POST"): Promise<Response> {
+        return ServiceFactory.instanceService("UPLOAD", { ...this.options, url: url, data: data, method: request }).fetch();
     }
     /**POST request with FormData*/
     async update(url: string, data: FormData): Promise<Response> {
-        return ServiceFactory.instanceService("update", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+        return ServiceFactory.instanceService("UPDATE", { ...this.options, url: url, data: data }).fetch();
     }
     /**PUT request with FormData*/
     async insert(url: string, data: FormData): Promise<Response> {
-        return ServiceFactory.instanceService("insert", { url: url, data: data, controller: this.controller, connectionTimer: this.connectionTimer }).fetch();
+        return ServiceFactory.instanceService("INSERT", { ...this.options, url: url, data: data }).fetch();
     }
     //#endregion
 
@@ -70,7 +74,7 @@ export default class Service {
     }
     /**Generate an HTML element that run a script using src */
     async runScript(url: string, success_callback?: Function, error_callback?: Function) {
-        let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
+        let controller = new ConnectionTimeoutInjector(<AbortController>this.options.controller, this.options.connectionTimer ?? default_timer);
         var script = createScript();
         var prior = document.getElementsByTagName('script')[0];
         prior.parentNode?.insertBefore(<Node>script, prior);
@@ -105,25 +109,25 @@ export default class Service {
     //#region GETTERS
     /**Elaborate url as GET request and return a json object response*/
     async getJson(url: string): Promise<object | undefined> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).json();
+        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).json();
     }
     /**Elaborate url as GET request and return a blob response*/
     async getBlob(url: string): Promise<Blob> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).blob();
+        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).blob();
     }
     /**Elaborate url as GET request and return an Array Buffer response*/
     async getArrayBuffer(url: string): Promise<ArrayBuffer> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).arrayBuffer();
+        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).arrayBuffer();
     }
     /**Elaborate url as GET request and return text response */
     async getText(url: string): Promise<string> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).text();
+        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).text();
     }
     /**Elaborate url as GET request and return an ObjectUrl
      * *NOTES* Indicate for onscreen files preview
      */
     async getObjectUrl(url: string): Promise<string> {
-        return (<GetService>ServiceFactory.instanceService("get", { url: url, controller: this.controller, connectionTimer: this.connectionTimer })).objectUrl();
+        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).objectUrl();
     }
     //#endregion
 }

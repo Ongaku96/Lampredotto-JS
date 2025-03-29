@@ -1,10 +1,8 @@
 import REST from "./REST.js";
+import { PartialWithRequired, RequestOptions } from "./types.js";
 
 export class InsertService extends REST {
-    constructor(url: string, data: any) {
-        super(url, "PUT", data);
-        this.options.headers = {
-            "Content-Type": "multipart/form-data"
-        };
+    constructor(options: PartialWithRequired<RequestOptions, "url" | "data">) {
+        super({ ...options, method: "PUT", headers: { "Content-Type": "multipart/form-data", ...options.headers } });
     }
 }

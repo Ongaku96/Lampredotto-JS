@@ -29,12 +29,12 @@ export default class REST implements iREST {
         }
     }
 
-    protected request() {
+    protected request(): Promise<Response> {
         let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
-        return fetch(this.options.url, this.options as HTTPOptions).then((response) => {
-            controller.resetTimer();
-            return response;
-        });
+        return fetch(this.options.url, this.options as HTTPOptions)
+            .catch(ex => { console.error(ex); return ex; })
+            .finally(() => { controller.resetTimer(); });
+
     }
 
     setConnectionTimeout(timer: number): void {
@@ -47,7 +47,7 @@ export default class REST implements iREST {
 
     async fetch() {
         return await this.request().then(async (response) => {
-            if (!response.ok) throw await exception(this, response);
+            if (!response?.ok) throw await exception(this, response);
             return response;
         });
     }

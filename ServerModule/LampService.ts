@@ -24,38 +24,38 @@ export default class Service {
         return new Service(options);
     }
     private constructor(options?: RequestOptions) {
-        if(options) Object.assign(this.options, options);
+        if (options) Object.assign(this.options, options);
     }
     //#endregion
 
     //#region REST API
     /**POST request with JSON data*/
     async post(url: string, data?: Object): Promise<Response> {
-        return ServiceFactory.instanceService("POST", { ...this.options, url: url, data: data }).fetch();
+        return await ServiceFactory.instanceService("POST", { ...this.options, url: url, data: data }).fetch().catch((error) => { throw error; });
     }
     /**PUT request with JSON data*/
     async put(url: string, data?: Object): Promise<Response> {
-        return ServiceFactory.instanceService("PUT", { ...this.options, url: url, data: data }).fetch();
+        return await ServiceFactory.instanceService("PUT", { ...this.options, url: url, data: data }).fetch().catch((error) => { throw error; });
     }
     /**GET request */
     async get(url: string): Promise<Response> {
-        return ServiceFactory.instanceService("GET", { ...this.options, url: url }).fetch();
+        return await ServiceFactory.instanceService("GET", { ...this.options, url: url }).fetch().catch((error) => { throw error; });
     }
     /**DELETE request */
     async delete(url: string): Promise<Response> {
-        return ServiceFactory.instanceService("DELETE", { ...this.options, url: url }).fetch();
+        return await ServiceFactory.instanceService("DELETE", { ...this.options, url: url }).fetch().catch((error) => { throw error; });
     }
     /**POST or PUT request with Json or FormData*/
     async upload(url: string, data: any, request: Extract<ServiceType, "PUT" | "POST"> = "POST"): Promise<Response> {
-        return ServiceFactory.instanceService("UPLOAD", { ...this.options, url: url, data: data, method: request }).fetch();
+        return await ServiceFactory.instanceService("UPLOAD", { ...this.options, url: url, data: data, method: request }).fetch().catch((error) => { throw error; });
     }
     /**POST request with FormData*/
     async update(url: string, data: FormData): Promise<Response> {
-        return ServiceFactory.instanceService("UPDATE", { ...this.options, url: url, data: data }).fetch();
+        return await ServiceFactory.instanceService("UPDATE", { ...this.options, url: url, data: data }).fetch().catch((error) => { throw error; });
     }
     /**PUT request with FormData*/
     async insert(url: string, data: FormData): Promise<Response> {
-        return ServiceFactory.instanceService("INSERT", { ...this.options, url: url, data: data }).fetch();
+        return await ServiceFactory.instanceService("INSERT", { ...this.options, url: url, data: data }).fetch().catch((error) => { throw error; });
     }
     //#endregion
 
@@ -64,7 +64,7 @@ export default class Service {
     async load(selector: string, url: string): Promise<void> {
         let _view = document.querySelector(selector);
         if (_view != null) {
-            this.getText(url).then(async (content) => {
+            await this.getText(url).then(async (content) => {
                 if (_view)
                     "virtual" in _view ? (<any>_view.virtual).replaceHtmlContent(content) : _view.outerHTML = content;
             }).catch((error) => { throw error; });
@@ -109,25 +109,25 @@ export default class Service {
     //#region GETTERS
     /**Elaborate url as GET request and return a json object response*/
     async getJson(url: string): Promise<object | undefined> {
-        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).json();
+        return await (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).json().catch((error) => { throw error; });
     }
     /**Elaborate url as GET request and return a blob response*/
     async getBlob(url: string): Promise<Blob> {
-        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).blob();
+        return await (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).blob().catch((error) => { throw error; });
     }
     /**Elaborate url as GET request and return an Array Buffer response*/
     async getArrayBuffer(url: string): Promise<ArrayBuffer> {
-        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).arrayBuffer();
+        return await (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).arrayBuffer().catch((error) => { throw error; });
     }
     /**Elaborate url as GET request and return text response */
     async getText(url: string): Promise<string> {
-        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).text();
+        return await (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).text().catch((error) => { throw error; });
     }
     /**Elaborate url as GET request and return an ObjectUrl
      * *NOTES* Indicate for onscreen files preview
      */
     async getObjectUrl(url: string): Promise<string> {
-        return (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).objectUrl();
+        return await (<GetService>ServiceFactory.instanceService("GET", { ...this.options, url: url })).objectUrl().catch((error) => { throw error; });
     }
     //#endregion
 }

@@ -26,10 +26,9 @@ export default class REST {
     }
     request() {
         let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
-        return fetch(this.options.url, this.options).then((response) => {
-            controller.resetTimer();
-            return response;
-        });
+        return fetch(this.options.url, this.options)
+            .catch(ex => { console.error(ex); return ex; })
+            .finally(() => { controller.resetTimer(); });
     }
     setConnectionTimeout(timer) {
         this.connectionTimer = timer;
@@ -39,7 +38,7 @@ export default class REST {
     }
     async fetch() {
         return await this.request().then(async (response) => {
-            if (!response.ok)
+            if (!response?.ok)
                 throw await exception(this, response);
             return response;
         });

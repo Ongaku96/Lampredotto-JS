@@ -1,7 +1,7 @@
 type ServiceType = "GET" | "POST" | "PUT" | "DELETE" | "UPLOAD" | "UPDATE" | "INSERT";
 type HTTPOptions = {
     method?: ServiceType,
-    body?: BodyInit,
+    body?: BodyInit | string | null,
     mode?: "no-cors" | "cors" | "same-origin",
     cache?: "default" | "no-cache" | "reload" | "force-cache" | "only-if-cached",
     credentials?: "include" | "same-origin" | "omit",

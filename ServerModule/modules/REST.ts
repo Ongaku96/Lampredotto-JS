@@ -7,7 +7,7 @@ export default class REST implements iREST {
     options: RequestOptions;
     get method() { return this.options.method; }
     get url() { return this.options.url; }
-    get body() { return this.options.data; }
+    get body() { return this.options.body ?? this.options.data; }
 
     controller: AbortController = new AbortController();
     connectionTimer: number = default_timer;
@@ -31,7 +31,7 @@ export default class REST implements iREST {
 
     protected request(): Promise<Response> {
         let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
-        return fetch(this.options.url, this.options as HTTPOptions)
+        return fetch(this.options.url, { ...this.options, body: this.body } as HTTPOptions)
             .catch(ex => { console.error(ex); return ex; })
             .finally(() => { controller.resetTimer(); });
 

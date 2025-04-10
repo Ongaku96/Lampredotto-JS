@@ -13,12 +13,12 @@ export default class ServiceFactory {
     static instanceService(type: ServiceFactory, options: RequestOptions) {
         let service: REST;
         switch (type) {
-            case "post": service = new PostService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break;
-            case "put": service = new PutService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break;
-            case "delete": service = new DeleteService(options); break;
-            case "upload": service = new UploadService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //, options.data, options.method || "POST"
-            case "update": service = new UpdateService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //.url, options.data
-            case "insert": service = new InsertService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //.url, options.data
+            case "POST": service = new PostService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break;
+            case "PUT": service = new PutService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break;
+            case "DELETE": service = new DeleteService(options); break;
+            case "UPLOAD": service = new UploadService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //, options.data, options.method || "POST"
+            case "UPDATE": service = new UpdateService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //.url, options.data
+            case "INSERT": service = new InsertService(<PartialWithRequired<RequestOptions, "url" | "data">>options); break; //.url, options.data
             default: service = new GetService(options); break;
         }
         if (options.controller != null) service.setAbortController(options.controller);

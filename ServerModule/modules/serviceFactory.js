@@ -9,22 +9,22 @@ export default class ServiceFactory {
     static instanceService(type, options) {
         let service;
         switch (type) {
-            case "post":
+            case "POST":
                 service = new PostService(options);
                 break;
-            case "put":
+            case "PUT":
                 service = new PutService(options);
                 break;
-            case "delete":
+            case "DELETE":
                 service = new DeleteService(options);
                 break;
-            case "upload":
+            case "UPLOAD":
                 service = new UploadService(options);
                 break; //, options.data, options.method || "POST"
-            case "update":
+            case "UPDATE":
                 service = new UpdateService(options);
                 break; //.url, options.data
-            case "insert":
+            case "INSERT":
                 service = new InsertService(options);
                 break; //.url, options.data
             default:

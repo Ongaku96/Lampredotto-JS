@@ -43,7 +43,7 @@ export default class Service {
     }
     /**POST or PUT request with Json or FormData*/
     async upload(url, data, request = "POST") {
-        return await ServiceFactory.instanceService("UPLOAD", { ...this.options, url: url, data: data, method: request }).fetch().catch((error) => { throw error; });
+        return await ServiceFactory.instanceService("UPLOAD", { ...this.options, url: url, data: data, method: request || "POST" }).fetch().catch((error) => { throw error; });
     }
     /**POST request with FormData*/
     async update(url, data) {

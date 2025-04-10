@@ -5,7 +5,7 @@ export default class REST {
     options;
     get method() { return this.options.method; }
     get url() { return this.options.url; }
-    get body() { return this.options.data; }
+    get body() { return this.options.body ?? this.options.data; }
     controller = new AbortController();
     connectionTimer = default_timer;
     constructor(options) {
@@ -26,7 +26,7 @@ export default class REST {
     }
     request() {
         let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
-        return fetch(this.options.url, this.options)
+        return fetch(this.options.url, { ...this.options, body: this.body })
             .catch(ex => { console.error(ex); return ex; })
             .finally(() => { controller.resetTimer(); });
     }

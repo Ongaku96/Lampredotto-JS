@@ -5,5 +5,7 @@ defineComponent({
     styles: [`[group-component]{display:flex;flex-direction: row;justify-content: center;align-items: stretch;border-radius:var(--global-radius);}`,
         `[group-component]>*{flex-grow:1;border-radius:0 !important;margin:0 !important;}`,
         `[group-component]>*:first-child{border-radius:var(--global-radius) 0 0 var(--global-radius) !important;}`,
-        `[group-component]>*:last-child{border-radius:0 var(--global-radius) var(--global-radius) 0 !important;}`,],
+        `[group-component]>*:last-child{border-radius:0 var(--global-radius) var(--global-radius) 0 !important;}`,
+        `[group-component]>*:only-child{border-radius:var(--global-radius) !important;}`,
+    ],
 });

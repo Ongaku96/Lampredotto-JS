@@ -4,10 +4,10 @@ import ServiceFactory from "./modules/serviceFactory.js";
 export default class Service {
     options = {
         url: "",
-        connectionTimer: default_timer,
+        connectionTimeout: default_timer,
         controller: new AbortController(),
     };
-    //#region  SINGLETON
+    //#region SINGLETON
     static _instance = null;
     /**Get singleton instance of Server Service with 30s connection timeout rule by default*/
     static get instance() {
@@ -70,7 +70,7 @@ export default class Service {
     }
     /**Generate an HTML element that run a script using src */
     async runScript(url, success_callback, error_callback) {
-        let controller = new ConnectionTimeoutInjector(this.options.controller, this.options.connectionTimer ?? default_timer);
+        let controller = new ConnectionTimeoutInjector(this.options.controller, this.options.connectionTimeout ?? default_timer);
         var script = createScript();
         var prior = document.getElementsByTagName('script')[0];
         prior.parentNode?.insertBefore(script, prior);

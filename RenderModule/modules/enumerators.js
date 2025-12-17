@@ -18,10 +18,11 @@ export var Collection;
         message_type[message_type["success"] = 1] = "success";
         message_type[message_type["warning"] = 2] = "warning";
         message_type[message_type["error"] = 3] = "error";
-        message_type[message_type["server_log"] = 4] = "server_log";
-        message_type[message_type["server_error"] = 5] = "server_error";
-        message_type[message_type["server_success"] = 6] = "server_success";
-        message_type[message_type["debug"] = 7] = "debug";
+        message_type[message_type["info"] = 4] = "info";
+        message_type[message_type["server_log"] = 5] = "server_log";
+        message_type[message_type["server_error"] = 6] = "server_error";
+        message_type[message_type["server_success"] = 7] = "server_success";
+        message_type[message_type["debug"] = 8] = "debug";
     })(message_type = Collection.message_type || (Collection.message_type = {}));
     let lifecycle;
     (function (lifecycle) {

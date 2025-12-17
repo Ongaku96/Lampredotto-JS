@@ -46,11 +46,12 @@ String.prototype.escapeRegExp = function () { return this.replace(/[.*+?^${}()|[
 String.prototype.escapeBrackets = function () { return this.replace(/\{\{|\}\}/gm, "").trim(); };
 /**escape { } characters from a string */
 String.prototype.escapeHTML = function () {
-    return this.replace(/&/g, "&amp")
+    return this
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/"/g, "&quot;");
+    //.replace(/'/g, "&#039;")
+    //.replace(/&/g, "&amp")
 };
 String.prototype.padRight = function (count) {
     return this.substring(this.length - count);

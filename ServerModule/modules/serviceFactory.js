@@ -33,8 +33,8 @@ export default class ServiceFactory {
         }
         if (options.controller != null)
             service.setAbortController(options.controller);
-        if (options.connectionTimer != null)
-            service.setConnectionTimeout(options.connectionTimer);
+        if (options.connectionTimeout != null)
+            service.setConnectionTimeout(options.connectionTimeout);
         return service;
     }
 }

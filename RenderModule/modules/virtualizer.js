@@ -4,7 +4,7 @@ import { Collection, command_matches } from "./enumerators.js";
 import { CommandVisitor, cBind, cFor, cIf, cModel, cOn } from "./commands.js";
 import { _vault_key, elaborateContent, react, ref, renderBrackets } from "./reactive.js";
 import EventHandler from "./events.js";
-import log from "./console.js";
+import { log } from "./console.js";
 import TaskManager from "./pipeline.js";
 /**Virtualized Node */
 export class vNode {

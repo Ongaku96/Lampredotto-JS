@@ -100,6 +100,7 @@ export function openFloatingMenu(item) {
                     (_top + _container_rect.height + _margin) + "px";
                 item.style.width = _container.offsetWidth + "px";
                 break;
+            case "unset": break;
             default:
                 item.style.left = _left + "px";
                 item.style.top = (_container_rect.y + _rect.height + _margin) > window.innerHeight ?

@@ -7,7 +7,7 @@ export default class REST {
     get url() { return this.options.url; }
     get body() { return this.options.body ?? this.options.data; }
     controller = new AbortController();
-    connectionTimer = default_timer;
+    connectionTimeout = default_timer;
     constructor(options) {
         this.options = {
             ...options,
@@ -25,13 +25,13 @@ export default class REST {
         };
     }
     request() {
-        let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimer);
+        let controller = new ConnectionTimeoutInjector(this.controller, this.connectionTimeout);
         return fetch(this.options.url, { ...this.options, body: this.body })
             .catch(ex => { console.error(ex); return ex; })
             .finally(() => { controller.resetTimer(); });
     }
     setConnectionTimeout(timer) {
-        this.connectionTimer = timer;
+        this.connectionTimeout = timer;
     }
     setAbortController(controller) {
         this.controller = controller;

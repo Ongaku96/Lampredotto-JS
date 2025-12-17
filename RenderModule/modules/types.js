@@ -1,7 +1,7 @@
 import "./global.js";
 import { Collection } from "./enumerators.js";
 import { Support } from "./library.js";
-import log from "./console.js";
+import { log } from "./console.js";
 /**Application interaction management */
 class ApplicationBuilder {
     application;

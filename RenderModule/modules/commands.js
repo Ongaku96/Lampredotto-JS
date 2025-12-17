@@ -2,7 +2,7 @@ import { vNode } from "./virtualizer.js";
 import { Support } from "./library.js";
 import { elaborateContent, renderBrackets } from "./reactive.js";
 import { Collection } from "./enumerators.js";
-import log from "./console.js";
+import { log } from "./console.js";
 import EventHandler from "./events.js";
 /**
  * check if element is content editable
@@ -355,8 +355,12 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (node.reference.length && node.reference[0].innerText != _debug)
-                            node.reference[0].innerText = _debug;
+                        const element = node.reference[0];
+                        if (element && element.innerText != _debug) {
+                            const value = Support.decodeHtml(_debug);
+                            element.innerHTML = value;
+                            element.dispatchEvent(new Event("cmd-model-update"));
+                        }
                         break;
                 }
                 this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });

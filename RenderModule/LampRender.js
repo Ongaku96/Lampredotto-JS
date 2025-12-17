@@ -4,7 +4,7 @@ import EventHandler from "./modules/events.js";
 import { ApplicationBuilder } from "./modules/types.js";
 import { Collection } from "./modules/enumerators.js";
 import { Application } from "./modules/application.js";
-import log from "./modules/console.js";
+import { log } from "./modules/console.js";
 import { setupComponent, styleComponent } from "./modules/templates.js";
 /**Lampredotto framework */
 export default class RenderEngine {

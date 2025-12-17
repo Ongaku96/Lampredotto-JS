@@ -356,10 +356,9 @@ class cModel extends Command {
                     default:
                         _debug = this.readValue(node.context, node.settings);
                         const element = node.reference[0];
-                        if (element && element.innerText != _debug) {
-                            const value = Support.decodeHtml(_debug);
-                            element.innerHTML = value;
-                            element.dispatchEvent(new Event("cmd-model-update"));
+                        if (element && element.innerHTML != _debug) {
+                            element.innerHTML = Support.decodeHtml(_debug);
+                            element.dispatchEvent(new Event('modelupdate'));
                         }
                         break;
                 }
@@ -388,7 +387,7 @@ class cModel extends Command {
             if (this.reference) {
                 let _element = input.reference[0];
                 let _value = Support.getValue(input.context, this.reference);
-                let _new_value = !(_element instanceof HTMLInputElement) && isContentEditable(_element) ? _element.innerText : _element.value;
+                let _new_value = !(_element instanceof HTMLInputElement) && isContentEditable(_element) ? _element.innerHTML : _element.value;
                 let _input_type = _element.getAttribute("type");
                 switch (input.nodeName) {
                     case "SELECT":
@@ -441,12 +440,8 @@ class cModel extends Command {
                                 Support.setValue(input.context, this.reference, _new_value != null ? Number(_new_value) : _new_value);
                                 break;
                             default:
-                                if (_new_value) {
-                                    let _val = Number(_new_value);
-                                    if (!Number.isNaN(_val))
-                                        _new_value = _val;
-                                }
-                                Support.setValue(input.context, this.reference, _new_value);
+                                const injected = isNaN(_new_value) ? (_new_value?.toString().escapeHtml() ?? "") : Number(_new_value);
+                                Support.setValue(input.context, this.reference, injected);
                                 break;
                         }
                         break;

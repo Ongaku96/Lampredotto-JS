@@ -18,9 +18,9 @@ export var Support;
                 .replace(/'/g, '"')
                 .replace(/\n/g, "\\n")
                 .replace(Collection.regexp.appdata, (match) => {
-                let _formatted_match = match.slice(1);
-                return `this${_formatted_match}`;
-            });
+                    let _formatted_match = match.slice(1);
+                    return `this${_formatted_match}`;
+                });
             if (!_script.match(/(this.)|\(|\)|\[|\]/g) && !_script.trim().startsWith("\"") && !_script.trim().endsWith("\""))
                 _script = "\"" + _script + "\"";
             if (!_script.includes("return") && _return)
@@ -291,12 +291,28 @@ export var Support;
         if (obj === null || typeof obj !== 'object') {
             return obj;
         }
-        const clone = Array.isArray(obj) ? [] : Object.assign(Object.create(Object.getPrototypeOf(obj)));
-        for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                clone[key] = deepClone(obj[key]);
-            }
+
+        if (obj instanceof RegExp) return new RegExp(obj);
+        if (obj instanceof Map) return new Map([...obj].map(([k, v]) => [deepClone(k), deepClone(v)]));
+        if (obj instanceof Set) return new Set([...obj].map(v => deepClone(v)));
+
+        // Handle Date
+        if (obj instanceof Date) {
+            return new Date(obj.getTime());
         }
+
+        // Handle Array
+        if (Array.isArray(obj)) {
+            return obj.map(item => deepClone(item));
+        }
+
+
+        // Handle Object
+        const clone = Object.create(Object.getPrototypeOf(obj));
+        for (const key of Reflect.ownKeys(obj)) {
+            clone[key] = deepClone(obj[key]);
+        }
+
         return clone;
     }
     Support.deepClone = deepClone;
@@ -334,6 +350,59 @@ export var Support;
             query.class ? element.className.includes(query.class || "") : false;
     }
     Support.checkQuery = checkQuery;
+    function registerColor(name, hex, alpha = 1) {
+        const hsl = hexToHsl(hex);
+        const root = document.documentElement;
+        root.style.setProperty(`--${name}-h`, hsl.h);
+        root.style.setProperty(`--${name}-s`, hsl.s);
+        root.style.setProperty(`--${name}-l`, hsl.l);
+        root.style.setProperty(`--${name}-a`, String(alpha));
+        // optional convenience vars for plain CSS fallback
+        root.style.setProperty(`--${name}`, hex);
+
+        if (!["brand", "primary", "secondary", "tertiary", "neutral", "info", "success", "warning", "danger", "light", "dark"].includes(name)) {
+            const css = `[relevance="${name}"]{ background-color: var(--${name}); color: var(--${name}-on, #DDDCDB); }`;
+            const style = document.getElementById("dynamic-palette") || (() => {
+                const s = document.createElement("style"); s.id = "dynamic-palette"; document.head.appendChild(s); return s;
+            })();
+            style.sheet.insertRule(css, style.sheet.cssRules.length);
+        }
+
+        function hexToHsl(hex) {
+            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            if (result) {
+                var r = parseInt(result[1], 16) / 255;
+                var g = parseInt(result[2], 16) / 255;
+                var b = parseInt(result[3], 16) / 255;
+                var max = Math.max(r, g, b), min = Math.min(r, g, b);
+                var h = 0, s = 0, l = (max + min) / 2;
+                if (max !== min) {
+                    var d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                        default: h = 0; break;
+                    }
+                    h /= 6;
+                }
+                return { s: Math.round(s * 100) + "%", l: Math.round(l * 100) + "%", h: Math.round(360 * h) + "deg" };
+            }
+            return { s: "0%", l: "0%", h: "0deg" };
+        }
+    }
+    Support.registerColor = registerColor;
+    function decodeHtml(input) {
+        if (!input || typeof input !== 'string') return input;
+        return input
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, '"')
+            .replace(/&#039;/g, "'")
+            .replace(/&amp;/g, "&");
+    }
+    Support.decodeHtml = decodeHtml;
 })(Support || (Support = {}));
 export var View;
 (function (View) {

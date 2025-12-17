@@ -109,11 +109,8 @@ class Application {
     //#region SETTINGS
     /**Setup global settings for interface and format*/
     applySettings() {
-        if (this.settings.interface?.palette) {
-            for (const c of this.settings.interface?.palette) {
-                updateGlobalStyle(c.name, c.color);
-            }
-        }
+        if (this.settings.interface?.palette)
+            for (const c of this.settings.interface?.palette) { Support.registerColor(c.name, c.color, c.color == "" || c.color === "transparent" ? 0 : 1); }
         switch (this.settings.interface?.animation) {
             case "slower":
                 document.documentElement.style.setProperty(`--global-animation`, "5s");
@@ -137,54 +134,15 @@ class Application {
             document.documentElement.style.setProperty(`--global-animation`, this.settings.interface.animation);
         if (this.settings.interface?.font)
             document.documentElement.style.setProperty(`--global-font`, this.settings.interface.font);
-        function updateGlobalStyle(name, hex) {
-            var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            if (result) {
-                var r = parseInt(result[1], 16);
-                var g = parseInt(result[2], 16);
-                var b = parseInt(result[3], 16);
-                r /= 255, g /= 255, b /= 255;
-                var max = Math.max(r, g, b), min = Math.min(r, g, b);
-                var h, s, l = (max + min) / 2;
-                if (max == min) {
-                    h = s = 0; // achromatic
-                }
-                else {
-                    var d = max - min;
-                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-                    switch (max) {
-                        case r:
-                            h = (g - b) / d + (g < b ? 6 : 0);
-                            break;
-                        case g:
-                            h = (b - r) / d + 2;
-                            break;
-                        case b:
-                            h = (r - g) / d + 4;
-                            break;
-                        default:
-                            h = 0;
-                            break;
-                    }
-                    h /= 6;
-                }
-                s = s * 100;
-                s = Math.round(s);
-                l = l * 100;
-                l = Math.round(l);
-                h = Math.round(360 * h);
-                document.documentElement.style.setProperty(`--${name}-h`, `${h}deg`);
-                document.documentElement.style.setProperty(`--${name}-s`, `${s}%`);
-                document.documentElement.style.setProperty(`--${name}-l`, `${l}%`);
-            }
-            document.documentElement.style.setProperty(`--${name}-a`, hex == "" || hex == "transparent" ? "0" : "1");
-        }
         document.body.setAttribute("theme", this.settings.interface?.darkmode ? "dark" : "");
     }
     /**Update interface settings */
     updateSettings(settings) {
-        if (settings.interface)
-            this.settings.interface = settings.interface;
+        if (settings) Object.assign(this.settings, settings);
+        this.applySettings();
+    }
+    updateInterface(settings) {
+        if (settings) Object.assign(this.settings.interface, settings);
         this.applySettings();
     }
     //#endregion

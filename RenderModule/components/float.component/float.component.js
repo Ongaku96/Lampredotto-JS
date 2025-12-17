@@ -35,7 +35,7 @@ export function floatingMenuManagement(evt) {
         if (clickedElement) {
             let virtualCondition = "virtual" in clickedElement ?
                 !clickedElement.virtual?.childOf({ attribute: menu_keys.item }) &&
-                    !clickedElement.virtual?.childOf({ attribute: menu_keys.toggle }) : true;
+                !clickedElement.virtual?.childOf({ attribute: menu_keys.toggle }) : true;
             return virtualCondition;
         }
         return true;
@@ -100,6 +100,7 @@ export function openFloatingMenu(item) {
                     (_top + _container_rect.height + _margin) + "px";
                 item.style.width = _container.offsetWidth + "px";
                 break;
+            case "unset": break;
             default:
                 item.style.left = _left + "px";
                 item.style.top = (_container_rect.y + _rect.height + _margin) > window.innerHeight ?

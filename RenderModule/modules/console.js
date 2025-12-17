@@ -27,3 +27,35 @@ export default function log(message, type = Collection.message_type.log) {
             break;
     }
 }
+
+export class Log {
+    constructor() { }
+
+    writeLine(message) {
+        log(message, Collection.message_type.log);
+    }
+    error(message) {
+        log(message, Collection.message_type.error);
+    }
+    info(message) {
+        log(message, Collection.message_type.info);
+    }
+    serverSuccess(message) {
+        log(message, Collection.message_type.server_success);
+    }
+    serverError(message) {
+        log(message, Collection.message_type.server_error);
+    }
+    serverLog(message) {
+        log(message, Collection.message_type.server_log);
+    }
+    debug(message) {
+        log(message, Collection.message_type.debug);
+    }
+    success(message) {
+        log(message, Collection.message_type.success);
+    }
+    warning(message) {
+        log(message, Collection.message_type.warning);
+    }
+}

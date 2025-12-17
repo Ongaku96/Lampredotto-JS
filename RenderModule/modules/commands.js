@@ -318,8 +318,8 @@ class cModel extends Command {
                                     var date = _debug instanceof Date ? _debug : new Date(_debug);
                                     node.reference[0].value =
                                         date.getFullYear() + "-" +
-                                            ("00" + (date.getMonth() + 1).toString()).padRight(2) + "-" +
-                                            ("00" + date.getDate()).padRight(2);
+                                        ("00" + (date.getMonth() + 1).toString()).padRight(2) + "-" +
+                                        ("00" + date.getDate()).padRight(2);
                                 }
                                 catch (ex) {
                                     log("error converting '" + _debug + "' to datetime: " + ex, Collection.message_type.error);
@@ -355,8 +355,11 @@ class cModel extends Command {
                         break;
                     default:
                         _debug = this.readValue(node.context, node.settings);
-                        if (node.reference.length && node.reference[0].innerText != _debug)
-                            node.reference[0].innerText = _debug;
+                        const encoded = Support.decodeHtml(_debug);
+                        if (node.reference.length && node.reference[0].innerHTML != _debug) {
+                            node.reference[0].innerHTML = encoded;
+                            node.reference[0].dispatchEvent(new Event('modelupdate'));
+                        }
                         break;
                 }
                 this._handler.trigger(Collection.node_event.render, { type: node.element?.getAttribute("type"), value: _debug });
@@ -384,7 +387,7 @@ class cModel extends Command {
             if (this.reference) {
                 let _element = input.reference[0];
                 let _value = Support.getValue(input.context, this.reference);
-                let _new_value = !(_element instanceof HTMLInputElement) && isContentEditable(_element) ? _element.innerText : _element.value;
+                let _new_value = !(_element instanceof HTMLInputElement) && isContentEditable(_element) ? _element.innerHTML : _element.value;
                 let _input_type = _element.getAttribute("type");
                 switch (input.nodeName) {
                     case "SELECT":
@@ -441,6 +444,9 @@ class cModel extends Command {
                                     let _val = Number(_new_value);
                                     if (!Number.isNaN(_val))
                                         _new_value = _val;
+                                    else
+                                        _new_value = _new_value?.toString().escapeHTML() ?? "";
+
                                 }
                                 Support.setValue(input.context, this.reference, _new_value);
                                 break;
